@@ -40,14 +40,14 @@ class Evaluator(object):
         self.config = jexl_config
 
     def evaluate(self, expression, context=None):
-        method = getattr(self, 'visit_' + type(expression).__name__, self.generic_visit)
+        method = getattr(self, "visit_" + type(expression).__name__, self.generic_visit)
         context = context or Context()
         return method(expression, context)
 
     def visit_BinaryExpression(self, exp, context):
         return exp.operator.do_evaluate(
             lambda: self.evaluate(exp.left, context),
-            lambda: self.evaluate(exp.right, context)
+            lambda: self.evaluate(exp.right, context),
         )
 
     def visit_UnaryExpression(self, exp, context):
@@ -83,15 +83,18 @@ class Evaluator(object):
                 'No transform found with the name "{name}"'.format(name=transform.name)
             )
 
-        args = [self.evaluate(arg) for arg in transform.args]
+        args = [self.evaluate(arg, context) for arg in transform.args]
         return transform_func(self.evaluate(transform.subject, context), *args)
 
     def visit_FilterExpression(self, filter_expression, context):
         values = self.evaluate(filter_expression.subject, context)
         if filter_expression.relative:
             return [
-                value for value in values
-                if self.evaluate(filter_expression.expression, context.with_relative(value))
+                value
+                for value in values
+                if self.evaluate(
+                    filter_expression.expression, context.with_relative(value)
+                )
             ]
         else:
             filter_value = self.evaluate(filter_expression.expression, context)
@@ -112,4 +115,4 @@ class Evaluator(object):
             return self.evaluate(conditional.alternate, context)
 
     def generic_visit(self, expression, context):
-        raise ValueError('Could not evaluate expression: ' + repr(expression))
+        raise ValueError("Could not evaluate expression: " + repr(expression))
