@@ -16,3 +16,7 @@ class EvaluationError(JEXLException):
 
 class MissingTransformError(EvaluationError):
     """An unregistered transform was used."""
+
+
+class MissingFunctionError(EvaluationError):
+    """An unregistered function was used."""

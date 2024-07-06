@@ -16,11 +16,12 @@ def operator_pattern(operators):
     # the `=`, causing a parse error.
     operators = sorted(operators, key=lambda op: op.symbol, reverse=True)
     operator_literals = ['"{}"'.format(op.symbol) for op in operators]
-    return ' / '.join(operator_literals)
+    return " / ".join(operator_literals)
 
 
 def jexl_grammar(jexl_config):
-    return Grammar(r"""
+    return Grammar(
+        r"""
         expression = (
             _ (conditional_expression / binary_expression / unary_expression / complex_value) _
         )
@@ -43,12 +44,15 @@ def jexl_grammar(jexl_config):
         transform = "|" identifier transform_arguments?
         transform_arguments = "(" _ value_list _ ")"
 
+        function = identifier function_arguments
+        function_arguments = "(" _ value_list _ ")"
+
         attribute = "." identifier
 
         filter_expression = "[" _ expression _ "]"
 
         value = (
-            boolean / string / numeric / subexpression / object_literal /
+            function / boolean / string / numeric / subexpression / object_literal /
             array_literal / identifier / relative_identifier
         )
 
@@ -73,9 +77,10 @@ def jexl_grammar(jexl_config):
 
         _ = ~r"\s*"
     """.format(
-        binary_op_pattern=operator_pattern(jexl_config.binary_operators.values()),
-        unary_op_pattern=operator_pattern(jexl_config.unary_operators.values())
-    ))
+            binary_op_pattern=operator_pattern(jexl_config.binary_operators.values()),
+            unary_op_pattern=operator_pattern(jexl_config.unary_operators.values()),
+        )
+    )
 
 
 class Parser(NodeVisitor):
@@ -124,7 +129,9 @@ class Parser(NodeVisitor):
 
     def visit_conditional_expression(self, node, children):
         (test, _, question, _, consequent, _, colon, _, alternate) = children
-        return ConditionalExpression(test=test, consequent=consequent, alternate=alternate)
+        return ConditionalExpression(
+            test=test, consequent=consequent, alternate=alternate
+        )
 
     def visit_conditional_test(self, node, children):
         return children[0]
@@ -158,7 +165,7 @@ class Parser(NodeVisitor):
 
     def visit_object_key_value_list(self, node, children):
         key_values = [children[0]]
-        for (_, comma, _, key_value) in children[1]:
+        for _, comma, _, key_value in children[1]:
             key_values.append(key_value)
 
         return {identifier.value: value for identifier, value in key_values}
@@ -173,7 +180,7 @@ class Parser(NodeVisitor):
 
     def visit_value_list(self, node, children):
         values = [children[0]]
-        for (_, comma, _, value) in children[1]:
+        for _, comma, _, value in children[1]:
             values.append(value)
 
         return values
@@ -192,6 +199,21 @@ class Parser(NodeVisitor):
         (dot, identifier) = children
         return identifier
 
+    def visit_function(self, node, children):
+        (identifier, arguments) = children
+        func = Function(name=identifier.value, args=[])
+
+        try:
+            func.args = arguments
+        except (IndexError, TypeError):
+            pass
+
+        return func
+
+    def visit_function_arguments(self, node, children):
+        (left_paren, _, values, _, right_paren) = children
+        return values
+
     def visit_transform(self, node, children):
         (bar, identifier, arguments) = children
         transform = Transform(name=identifier.value, args=[])
@@ -209,7 +231,9 @@ class Parser(NodeVisitor):
 
     def visit_filter_expression(self, node, children):
         (left_bracket, _, expression, _, right_bracket) = children
-        return FilterExpression(expression=expression, relative=expression.contains_relative())
+        return FilterExpression(
+            expression=expression, relative=expression.contains_relative()
+        )
 
     def visit_identifier(self, node, children):
         return Identifier(value=node.text, relative=False)
@@ -223,15 +247,15 @@ class Parser(NodeVisitor):
         return children[0]
 
     def visit_boolean(self, node, children):
-        if node.text == 'true':
+        if node.text == "true":
             return Literal(True)
-        elif node.text == 'false':
+        elif node.text == "false":
             return Literal(False)
         else:
-            raise ValueError('Could not parse boolean: ' + node.text)
+            raise ValueError("Could not parse boolean: " + node.text)
 
     def visit_numeric(self, node, children):
-        number_type = float if '.' in node.text else int
+        number_type = float if "." in node.text else int
         return Literal(number_type(node.text))
 
     def visit_string(self, node, children):
@@ -246,12 +270,15 @@ class NodeMeta(type):
     Metaclass for making AST nodes. Handles adding the Node's custom
     fields to __slots__ and ensures every Node has a parent field.
     """
+
     def __new__(meta, classname, bases, classdict):
-        if 'parent' not in classdict['fields']:
-            classdict['fields'].append('parent')
-        classdict.update({
-            '__slots__': classdict['fields'],
-        })
+        if "parent" not in classdict["fields"]:
+            classdict["fields"].append("parent")
+        classdict.update(
+            {
+                "__slots__": classdict["fields"],
+            }
+        )
         return type.__new__(meta, classname, bases, classdict)
 
 
@@ -263,6 +290,7 @@ class Node(with_metaclass(NodeMeta, object)):
     fields attribute on the class that lists the desired attributes for
     the class.
     """
+
     fields = []
 
     def __init__(self, *args, **kwargs):
@@ -278,19 +306,20 @@ class Node(with_metaclass(NodeMeta, object)):
 
     def __repr__(self):
         kwargs = [
-            '='.join([field, repr(getattr(self, field))])
-            for field in self.fields if field != 'parent'
+            "=".join([field, repr(getattr(self, field))])
+            for field in self.fields
+            if field != "parent"
         ]
 
-        return '{name}({kwargs})'.format(
-            name=type(self).__name__,
-            kwargs=', '.join(kwargs)
+        return "{name}({kwargs})".format(
+            name=type(self).__name__, kwargs=", ".join(kwargs)
         )
 
     def __eq__(self, other):
         return isinstance(other, type(self)) and all(
             getattr(self, field) == getattr(other, field)
-            for field in self.fields if field != 'parent'
+            for field in self.fields
+            if field != "parent"
         )
 
     @property
@@ -307,11 +336,11 @@ class Node(with_metaclass(NodeMeta, object)):
         children_relative = any(
             child.contains_relative() for child in self.children if child is not None
         )
-        return getattr(self, 'relative', children_relative)
+        return getattr(self, "relative", children_relative)
 
 
 class BinaryExpression(Node):
-    fields = ['operator', 'left', 'right']
+    fields = ["operator", "left", "right"]
 
     @property
     def children(self):
@@ -320,7 +349,7 @@ class BinaryExpression(Node):
 
 
 class UnaryExpression(Node):
-    fields = ['operator', 'right']
+    fields = ["operator", "right"]
 
     @property
     def children(self):
@@ -328,14 +357,14 @@ class UnaryExpression(Node):
 
 
 class Literal(Node):
-    fields = ['value']
+    fields = ["value"]
 
 
 class Identifier(Node):
-    fields = ['value', 'subject', 'relative']
+    fields = ["value", "subject", "relative"]
 
     def __init__(self, *args, **kwargs):
-        kwargs.setdefault('relative', False)
+        kwargs.setdefault("relative", False)
         super().__init__(*args, **kwargs)
 
     @property
@@ -345,15 +374,15 @@ class Identifier(Node):
 
 
 class ObjectLiteral(Node):
-    fields = ['value']
+    fields = ["value"]
 
 
 class ArrayLiteral(Node):
-    fields = ['value']
+    fields = ["value"]
 
 
 class Transform(Node):
-    fields = ['name', 'args', 'subject']
+    fields = ["name", "args", "subject"]
 
     @property
     def children(self):
@@ -362,11 +391,20 @@ class Transform(Node):
             yield arg
 
 
+class Function(Node):
+    fields = ["name", "args"]
+
+    @property
+    def children(self):
+        for arg in self.args:
+            yield arg
+
+
 class FilterExpression(Node):
-    fields = ['expression', 'subject', 'relative']
+    fields = ["expression", "subject", "relative"]
 
     def __init__(self, *args, **kwargs):
-        kwargs.setdefault('relative', False)
+        kwargs.setdefault("relative", False)
         super().__init__(*args, **kwargs)
 
     @property
@@ -379,7 +417,7 @@ class FilterExpression(Node):
 
 
 class ConditionalExpression(Node):
-    fields = ['test', 'consequent', 'alternate']
+    fields = ["test", "consequent", "alternate"]
 
     @property
     def children(self):

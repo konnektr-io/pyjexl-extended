@@ -6,7 +6,7 @@ from pyjexl.operators import default_binary_operators, default_unary_operators
 from pyjexl.parser import jexl_grammar, Parser
 
 
-default_config = JEXLConfig({}, default_unary_operators, default_binary_operators)
+default_config = JEXLConfig({}, {}, default_unary_operators, default_binary_operators)
 
 
 class DefaultParser(Parser):

@@ -1,12 +1,5 @@
-try:
-    from collections.abc import MutableMapping
-except ImportError:
-    # Python 2.7 compat
-    # TODO: Decide if we stop supporting 2.7
-    # as it's been EOL for a while now
-    from collections import MutableMapping
-
-from pyjexl.exceptions import MissingTransformError
+from collections.abc import MutableMapping
+from pyjexl.exceptions import MissingFunctionError, MissingTransformError
 
 
 class Context(MutableMapping):
@@ -74,6 +67,17 @@ class Evaluator(object):
 
     def visit_ArrayLiteral(self, array_literal, context):
         return [self.evaluate(value, context) for value in array_literal.value]
+
+    def visit_Function(self, func, context):
+        try:
+            function_func = self.config.functions[func.name]
+        except KeyError:
+            raise MissingFunctionError(
+                'No function found with the name "{name}"'.format(name=func.name)
+            )
+
+        args = [self.evaluate(arg, context) for arg in func.args]
+        return function_func(*args)
 
     def visit_Transform(self, transform, context):
         try:
