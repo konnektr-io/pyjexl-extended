@@ -13,7 +13,9 @@ from pyjexl.parser import jexl_grammar, Parser
 
 #: Encapsulates the variable parts of JEXL that affect parsing and
 #: evaluation.
-JEXLConfig = namedtuple('JEXLConfig', ['transforms', 'unary_operators', 'binary_operators'])
+JEXLConfig = namedtuple(
+    "JEXLConfig", ["functions", "transforms", "unary_operators", "binary_operators"]
+)
 
 
 def invalidates_grammar(func):
@@ -21,6 +23,7 @@ def invalidates_grammar(func):
     def wrapper(self, *args, **kwargs):
         self._grammar = None
         return func(self, *args, **kwargs)
+
     return wrapper
 
 
@@ -28,9 +31,10 @@ class JEXL(object):
     def __init__(self, context=None):
         self.context = Context(context or {})
         self.config = JEXLConfig(
+            functions={},
             transforms={},
             unary_operators=default_unary_operators.copy(),
-            binary_operators=default_binary_operators.copy()
+            binary_operators=default_binary_operators.copy(),
         )
 
         self._grammar = None
@@ -67,13 +71,27 @@ class JEXL(object):
         def wrapper(func):
             self.config.transforms[name or func.__name__] = func
             return func
+
+        return wrapper
+
+    def add_function(self, name, func):
+        self.config.functions[name] = func
+
+    def remove_functions(self, name):
+        del self.config.functions[name]
+
+    def function(self, name=None):
+        def wrapper(func):
+            self.config.functions[name or func.__name__] = func
+            return func
+
         return wrapper
 
     def parse(self, expression):
         try:
             return Parser(self.config).visit(self.grammar.parse(expression))
         except ParsimoniousParseError:
-            raise ParseError('Could not parse expression: ' + expression)
+            raise ParseError("Could not parse expression: " + expression)
 
     def analyze(self, expression, AnalyzerClass):
         parsed_expression = self.parse(expression)

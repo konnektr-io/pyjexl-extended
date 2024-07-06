@@ -1,12 +1,5 @@
-try:
-    from collections.abc import MutableMapping
-except ImportError:
-    # Python 2.7 compat
-    # TODO: Decide if we stop supporting 2.7
-    # as it's been EOL for a while now
-    from collections import MutableMapping
-
-from pyjexl.exceptions import MissingTransformError
+from collections.abc import MutableMapping
+from pyjexl.exceptions import MissingFunctionError, MissingTransformError
 
 
 class Context(MutableMapping):
@@ -40,14 +33,14 @@ class Evaluator(object):
         self.config = jexl_config
 
     def evaluate(self, expression, context=None):
-        method = getattr(self, 'visit_' + type(expression).__name__, self.generic_visit)
+        method = getattr(self, "visit_" + type(expression).__name__, self.generic_visit)
         context = context or Context()
         return method(expression, context)
 
     def visit_BinaryExpression(self, exp, context):
         return exp.operator.do_evaluate(
             lambda: self.evaluate(exp.left, context),
-            lambda: self.evaluate(exp.right, context)
+            lambda: self.evaluate(exp.right, context),
         )
 
     def visit_UnaryExpression(self, exp, context):
@@ -75,6 +68,17 @@ class Evaluator(object):
     def visit_ArrayLiteral(self, array_literal, context):
         return [self.evaluate(value, context) for value in array_literal.value]
 
+    def visit_Function(self, func, context):
+        try:
+            function_func = self.config.functions[func.name]
+        except KeyError:
+            raise MissingFunctionError(
+                'No function found with the name "{name}"'.format(name=func.name)
+            )
+
+        args = [self.evaluate(arg, context) for arg in func.args]
+        return function_func(*args)
+
     def visit_Transform(self, transform, context):
         try:
             transform_func = self.config.transforms[transform.name]
@@ -83,15 +87,18 @@ class Evaluator(object):
                 'No transform found with the name "{name}"'.format(name=transform.name)
             )
 
-        args = [self.evaluate(arg) for arg in transform.args]
+        args = [self.evaluate(arg, context) for arg in transform.args]
         return transform_func(self.evaluate(transform.subject, context), *args)
 
     def visit_FilterExpression(self, filter_expression, context):
         values = self.evaluate(filter_expression.subject, context)
         if filter_expression.relative:
             return [
-                value for value in values
-                if self.evaluate(filter_expression.expression, context.with_relative(value))
+                value
+                for value in values
+                if self.evaluate(
+                    filter_expression.expression, context.with_relative(value)
+                )
             ]
         else:
             filter_value = self.evaluate(filter_expression.expression, context)
@@ -112,4 +119,4 @@ class Evaluator(object):
             return self.evaluate(conditional.alternate, context)
 
     def generic_visit(self, expression, context):
-        raise ValueError('Could not evaluate expression: ' + repr(expression))
+        raise ValueError("Could not evaluate expression: " + repr(expression))

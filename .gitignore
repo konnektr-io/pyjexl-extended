@@ -7,3 +7,5 @@
 .hypothesis/
 .eggs
 .pytest_cache
+/venv
+**pycache**
