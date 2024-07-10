@@ -1,7 +1,5 @@
 # PyJEXL
 
-[![CircleCI](https://circleci.com/gh/mozilla/pyjexl.svg?style=svg)](https://circleci.com/gh/mozilla/pyjexl)
-
 A Python-based JEXL parser and evaluator.
 
 **NOTE:** This library handles the JEXL from
