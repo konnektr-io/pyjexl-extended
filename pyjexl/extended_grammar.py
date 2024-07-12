@@ -159,6 +159,48 @@ class ExtendedGrammar:
     def random():
         return random.random()
 
+    @staticmethod
+    def format_number(value, precision=2):
+        return "{:.{}f}".format(value, precision)
+
+    @staticmethod
+    def format_base(value, base=10):
+        return format(value, "0" + str(base) + "d")
+
+    @staticmethod
+    def format_integer(value, base=10):
+        return int(value, base)
+
+    @staticmethod
+    def sum(value, *rest):
+        if not isinstance(value, list):
+            value = [value]
+        rest = [v for v in rest]
+        if len(rest) > 0 and isinstance(rest[0], list):
+            rest = [v for va in rest for v in va]
+        values = value + rest
+        return sum(values)
+
+    @staticmethod
+    def max(value, *rest):
+        if not isinstance(value, list):
+            value = [value]
+        rest = [v for v in rest]
+        if len(rest) > 0 and isinstance(rest[0], list):
+            rest = [v for va in rest for v in va]
+        values = value + rest
+        return max(values)
+
+    @staticmethod
+    def min(value, *rest):
+        if not isinstance(value, list):
+            value = [value]
+        rest = [v for v in rest]
+        if len(rest) > 0 and isinstance(rest[0], list):
+            rest = [v for va in rest for v in va]
+        values = value + rest
+        return min(values)
+
     """ Array functions """
 
     @staticmethod

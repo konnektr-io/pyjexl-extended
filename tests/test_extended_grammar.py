@@ -128,7 +128,31 @@ class TestTransformsString(unittest.TestCase):
         self.assertEqual(self.jexl.evaluate("10.123456|round(2)"), 10.12)
         self.assertEqual(self.jexl.evaluate("10.123456|toInt"), 10)
         self.assertEqual(self.jexl.evaluate('"10.123456"|toInt'), 10)
+        self.assertEqual(self.jexl.evaluate("'16325'|toInt"), 16325)
+        self.assertEqual(self.jexl.evaluate("(9/2)|toInt"), 4)
         self.assertEqual(self.jexl.evaluate("3|power(2)"), 9)
         self.assertEqual(self.jexl.evaluate("3|power"), 9)
         self.assertEqual(self.jexl.evaluate("9|sqrt"), 3)
         self.assertEqual(self.jexl.evaluate("random() < 1"), True)
+
+    def test_formatting(self):
+        self.assertEqual(
+            self.jexl.evaluate('16325.62|formatNumber("0,0.000")'), "16,325.620"
+        )
+        self.assertEqual(
+            self.jexl.evaluate('16325.62|formatNumber("0.000")'), "16325.620"
+        )
+        self.assertEqual(self.jexl.evaluate("12|formatBase(16)"), "c")
+        self.assertEqual(
+            self.jexl.evaluate('16325.62|formatInteger("0000000")'), "0016325"
+        )
+
+    def test_numeric_aggregations(self):
+        self.assertEqual(self.jexl.evaluate("[1,2,3]|sum"), 6)
+        self.assertEqual(self.jexl.evaluate("sum(1,2,3,4,5)"), 15)
+        self.assertEqual(self.jexl.evaluate("[1,3]|sum(1,2,3,4,5)"), 19)
+        self.assertEqual(self.jexl.evaluate("[1,3]|sum([1,2,3,4,5])"), 19)
+        self.assertEqual(self.jexl.evaluate("[1,3]|max([1,2,3,4,5])"), 5)
+        self.assertEqual(self.jexl.evaluate("[2,3]|min([1,2,3,4,5])"), 1)
+        self.assertEqual(self.jexl.evaluate("[2,3]|min(1,2,3,4,5)"), 1)
+        # self.assertEqual(self.jexl.evaluate('[4,5,6]|avg'), 5)
