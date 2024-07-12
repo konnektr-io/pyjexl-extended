@@ -1,9 +1,13 @@
 import functools
 import json
+import math
+import random
 import re
+import base64
 
 
 class ExtendedGrammar:
+    """String functions"""
 
     @staticmethod
     def to_string(value, prettify=False):
@@ -18,10 +22,6 @@ class ExtendedGrammar:
     @staticmethod
     def length(value):
         return len(value)
-
-    @staticmethod
-    def concat(list_value):
-        return functools.reduce(lambda a, b: a + b, list_value)
 
     @staticmethod
     def substring(value: any, start: int, length: int = None):
@@ -98,3 +98,69 @@ class ExtendedGrammar:
     @staticmethod
     def contains(value, search):
         return search in value
+
+    @staticmethod
+    def split(value: str, sep=","):
+        return value.split(sep)
+
+    @staticmethod
+    def join(value, sep=","):
+        return sep.join(value)
+
+    @staticmethod
+    def replace(value: str, search: str, replace=""):
+        return value.replace(search, replace)
+
+    @staticmethod
+    def base64_encode(input: str):
+        return base64.b64encode(input.encode("utf-8")).decode("utf-8")
+
+    @staticmethod
+    def base64_decode(input: str):
+        return base64.b64decode(input.encode("utf-8")).decode("utf-8")
+
+    """Number functions"""
+
+    @staticmethod
+    def to_number(value):
+        return float(value)
+
+    @staticmethod
+    def to_int(value):
+        if isinstance(value, str):
+            value = value.strip('"')
+        return int(float(value))
+
+    @staticmethod
+    def abs(value):
+        return abs(value)
+
+    @staticmethod
+    def floor(value):
+        return math.floor(value)
+
+    @staticmethod
+    def ceil(value):
+        return math.ceil(value)
+
+    @staticmethod
+    def round(value, precision=0):
+        return round(value, precision)
+
+    @staticmethod
+    def power(value, power=2):
+        return math.pow(value, power)
+
+    @staticmethod
+    def sqrt(value):
+        return math.sqrt(value)
+
+    @staticmethod
+    def random():
+        return random.random()
+
+    """ Array functions """
+
+    @staticmethod
+    def array_append(list_value):
+        return functools.reduce(lambda a, b: a + b, list_value)

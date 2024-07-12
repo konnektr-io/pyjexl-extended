@@ -79,6 +79,15 @@ def test_functions():
     assert result == 8
 
 
+def test_functions2():
+    config = JEXLConfig(
+        {"two": lambda: 2}, {}, default_binary_operators, default_unary_operators
+    )
+    evaluator = Evaluator(config)
+    result = evaluator.evaluate(tree("two() + 3"))
+    assert result == 5
+
+
 def test_filter_arrays():
     context = Context(
         {"foo": {"bar": [{"tek": "hello"}, {"tek": "baz"}, {"tok": "baz"}]}}

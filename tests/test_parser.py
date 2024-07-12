@@ -158,10 +158,14 @@ def test_chained_identifiers():
     )
 
 
-def test_functions():
+def test_function():
     assert DefaultParser().parse('fn1("bar")') == Function(
         name="fn1", args=[Literal("bar")]
     )
+
+
+def test_function_no_args():
+    assert DefaultParser().parse("fn2()") == Function(name="fn2", args=[])
 
 
 def test_functions_object_arg():

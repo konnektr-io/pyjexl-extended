@@ -45,7 +45,7 @@ def jexl_grammar(jexl_config):
         transform_arguments = "(" _ value_list _ ")"
 
         function = identifier function_arguments
-        function_arguments = "(" _ value_list _ ")"
+        function_arguments = "(" _ value_list? _ ")"
 
         attribute = "." identifier
 
@@ -203,15 +203,17 @@ class Parser(NodeVisitor):
         (identifier, arguments) = children
         func = Function(name=identifier.value, args=[])
 
-        try:
-            func.args = arguments
-        except (IndexError, TypeError):
-            pass
+        if isinstance(arguments, list):
+            try:
+                func.args = arguments
+            except (IndexError, TypeError):
+                pass
 
         return func
 
     def visit_function_arguments(self, node, children):
         (left_paren, _, values, _, right_paren) = children
+        values = [item for sublist in values for item in sublist]
         return values
 
     def visit_transform(self, node, children):

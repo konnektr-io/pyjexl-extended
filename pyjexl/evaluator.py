@@ -76,7 +76,7 @@ class Evaluator(object):
                 'No function found with the name "{name}"'.format(name=func.name)
             )
 
-        args = [self.evaluate(arg, context) for arg in func.args]
+        args = [self.evaluate(arg, context) for arg in func.args] if func.args else []
         return function_func(*args)
 
     def visit_Transform(self, transform, context):

@@ -81,3 +81,54 @@ class TestTransformsString(unittest.TestCase):
         self.assertFalse(self.jexl.evaluate('["foo-bar"]|contains("bar")'))
         self.assertTrue(self.jexl.evaluate('["foo-bar"]|contains("foo-bar")'))
         self.assertTrue(self.jexl.evaluate('["baz", "foo", "bar"]|contains("bar")'))
+
+    def test_split(self):
+        self.assertEqual(self.jexl.evaluate('split("foo-bar", "-")'), ["foo", "bar"])
+        self.assertEqual(self.jexl.evaluate('split("foo-bar", "-")[1]'), "bar")
+        self.assertEqual(self.jexl.evaluate('split("foo-bar", "-")[0]'), "foo")
+        self.assertEqual(
+            self.jexl.evaluate('split("foo-bar", "-")[0]|uppercase'), "FOO"
+        )
+        self.assertEqual(
+            self.jexl.evaluate('split("foo-bar", "-")[1]|lowercase'), "bar"
+        )
+        self.assertEqual(
+            self.jexl.evaluate('split("foo-bar", "-")[1]|substring(0,1)'), "b"
+        )
+
+    def test_join(self):
+        self.assertEqual(self.jexl.evaluate('join(["foo", "bar"], "-")'), "foo-bar")
+        self.assertEqual(self.jexl.evaluate('join(["foo", "bar"], "")'), "foobar")
+        self.assertEqual(self.jexl.evaluate('["foo", "bar"]|join'), "foo,bar")
+        # self.assertEqual(
+        #     self.jexl.evaluate('"f,b,a,d,e,c"|split(",")|sort|join'), "a,b,c,d,e,f"
+        # )
+        # self.assertEqual(
+        #     self.jexl.evaluate('"f,b,a,d,e,c"|split(",")|sort|join("")'), "abcdef"
+        # )
+
+    def test_replace(self):
+        self.assertEqual(self.jexl.evaluate('replace("foo-bar", "-", "_")'), "foo_bar")
+        self.assertEqual(self.jexl.evaluate('replace("foo-bar---", "-", "")'), "foobar")
+        self.assertEqual(
+            self.jexl.evaluate('"123ab123ab123ab"|replace("123")'), "ababab"
+        )
+
+    def test_base64(self):
+        self.assertEqual(self.jexl.evaluate('base64Encode("foobar")'), "Zm9vYmFy")
+        self.assertEqual(self.jexl.evaluate('base64Decode("Zm9vYmFy")'), "foobar")
+
+    def test_number(self):
+        self.assertEqual(self.jexl.evaluate('$number("1")'), 1)
+        self.assertEqual(self.jexl.evaluate('$number("1.1")'), 1.1)
+        self.assertEqual(self.jexl.evaluate('$number("-1.1")'), -1.1)
+        self.assertEqual(self.jexl.evaluate("$number(-1.1)"), -1.1)
+        self.assertEqual(self.jexl.evaluate("$number(-1.1)|floor"), -2)
+        self.assertEqual(self.jexl.evaluate('$number("10.6")|ceil'), 11)
+        self.assertEqual(self.jexl.evaluate("10.123456|round(2)"), 10.12)
+        self.assertEqual(self.jexl.evaluate("10.123456|toInt"), 10)
+        self.assertEqual(self.jexl.evaluate('"10.123456"|toInt'), 10)
+        self.assertEqual(self.jexl.evaluate("3|power(2)"), 9)
+        self.assertEqual(self.jexl.evaluate("3|power"), 9)
+        self.assertEqual(self.jexl.evaluate("9|sqrt"), 3)
+        self.assertEqual(self.jexl.evaluate("random() < 1"), True)
