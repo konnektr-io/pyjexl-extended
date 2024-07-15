@@ -2,7 +2,7 @@ import unittest
 from pyjexl import JexlExtended
 
 
-class TestTransformsString(unittest.TestCase):
+class JexlExtendedTests(unittest.TestCase):
 
     def setUp(self) -> None:
         self.jexl = JexlExtended()
@@ -155,4 +155,192 @@ class TestTransformsString(unittest.TestCase):
         self.assertEqual(self.jexl.evaluate("[1,3]|max([1,2,3,4,5])"), 5)
         self.assertEqual(self.jexl.evaluate("[2,3]|min([1,2,3,4,5])"), 1)
         self.assertEqual(self.jexl.evaluate("[2,3]|min(1,2,3,4,5)"), 1)
-        # self.assertEqual(self.jexl.evaluate('[4,5,6]|avg'), 5)
+        self.assertEqual(self.jexl.evaluate("[4,5,6]|avg"), 5)
+
+    def test_booleans(self):
+        self.assertTrue(self.jexl.evaluate("1|toBoolean"))
+        self.assertTrue(self.jexl.evaluate("3|toBoolean"))
+        self.assertTrue(self.jexl.evaluate("'1'|toBoolean"))
+        self.assertIsNone(self.jexl.evaluate("'2'|toBoolean"))
+        self.assertIsNone(self.jexl.evaluate("'a'|toBool"))
+        self.assertIsNone(self.jexl.evaluate("''|toBool"))
+        self.assertFalse(self.jexl.evaluate("0|toBool"))
+        self.assertFalse(self.jexl.evaluate("0.0|toBool"))
+        self.assertFalse(self.jexl.evaluate("'false'|toBool"))
+        self.assertFalse(self.jexl.evaluate("'False'|toBool"))
+        self.assertFalse(self.jexl.evaluate("'fALSE'|toBool"))
+        self.assertTrue(self.jexl.evaluate("'tRUE       '|toBoolean"))
+        self.assertTrue(self.jexl.evaluate("'False'|toBool|not"))
+        self.assertFalse(self.jexl.evaluate("'TRUE'|toBool|not"))
+
+    def test_arrays(self):
+        self.assertEqual(
+            self.jexl.evaluate('["foo", "bar", "baz"]|append("tek")'),
+            ["foo", "bar", "baz", "tek"],
+        )
+        self.assertEqual(
+            self.jexl.evaluate('["foo", "bar"]|append(["baz","tek"])'),
+            ["foo", "bar", "baz", "tek"],
+        )
+        self.assertEqual(
+            self.jexl.evaluate('"foo"|append(["bar", "baz","tek"])'),
+            ["foo", "bar", "baz", "tek"],
+        )
+        self.assertEqual(
+            self.jexl.evaluate('"foo"|append("bar", "baz","tek")'),
+            ["foo", "bar", "baz", "tek"],
+        )
+        self.assertEqual(
+            self.jexl.evaluate('["tek", "baz", "bar", "foo"]|reverse'),
+            ["foo", "bar", "baz", "tek"],
+        )
+        self.assertEqual(
+            self.jexl.evaluate('["tek", "baz", "bar", "foo", "foo"]|reverse|distinct'),
+            ["foo", "bar", "baz", "tek"],
+        )
+        self.assertEqual(
+            self.jexl.evaluate("{foo:0, bar:1, baz:2, tek:3}|keys"),
+            ["foo", "bar", "baz", "tek"],
+        )
+        self.assertEqual(
+            self.jexl.evaluate('{a:"foo", b:"bar", c:"baz", d:"tek"}|values'),
+            ["foo", "bar", "baz", "tek"],
+        )
+        self.assertEqual(
+            self.jexl.evaluate(
+                '[{name:"foo"}, {name:"bar"}, {name:"baz"}, {name:"tek"}]|mapField("name")'
+            ),
+            ["foo", "bar", "baz", "tek"],
+        )
+        self.assertEqual(
+            self.jexl.evaluate(
+                '[{name:"tek",age:32}, {name:"bar",age:34}, {name:"baz",age:33}, {name:"foo",age:35}]|sort("age",true)|mapField("name")'
+            ),
+            ["tek", "baz", "bar", "foo"],
+        )
+        self.assertEqual(
+            self.jexl.evaluate('["foo"]|append(["tek","baz","bar"]|sort)'),
+            ["foo", "bar", "baz", "tek"],
+        )
+        self.assertEqual(
+            self.jexl.evaluate(
+                '["foo"]|append(["tek", "baz", "bar", "foo", "foo"]|filter("value != \'foo\'")|sort)'
+            ),
+            ["foo", "bar", "baz", "tek"],
+        )
+
+    def test_map(self):
+        context = {
+            "assoc": [
+                {"lastName": "Archer", "age": 32},
+                {"lastName": "Poovey", "age": 34},
+                {"lastName": "Figgis", "age": 45},
+            ]
+        }
+        self.assertEqual(
+            self.jexl.evaluate(
+                '[{name:"foo"}, {name:"bar"}, {name:"baz"}, {name:"tek"}]|map("value.name")'
+            ),
+            ["foo", "bar", "baz", "tek"],
+        )
+        self.assertEqual(
+            self.jexl.evaluate(
+                '[{name:"tek",age:32}, {name:"bar",age:34}, {name:"baz",age:33}, {name:"foo",age:35}]|map("value.age")'
+            ),
+            [32, 34, 33, 35],
+        )
+        self.assertEqual(
+            self.jexl.evaluate("assoc|map('value.age')", context),
+            [32, 34, 45],
+        )
+        self.assertEqual(
+            self.jexl.evaluate("assoc|map('value.lastName')", context),
+            ["Archer", "Poovey", "Figgis"],
+        )
+        self.assertEqual(
+            self.jexl.evaluate("assoc|map('value.age + index')", context),
+            [32, 35, 47],
+        )
+        self.assertEqual(
+            self.jexl.evaluate(
+                "assoc|map('value.age + array[.age <= value.age][0].age + index')",
+                context,
+            ),
+            [64, 67, 79],
+        )
+        self.assertEqual(
+            self.jexl.evaluate("assoc|map('value.age')|avg", context),
+            37,
+        )
+
+    def test_any_all(self):
+        context = {
+            "assoc": [
+                {"lastName": "Archer", "age": 32},
+                {"lastName": "Poovey", "age": 34},
+                {"lastName": "Figgis", "age": 45},
+            ]
+        }
+        self.assertTrue(
+            self.jexl.evaluate(
+                '[{name:"foo"}, {name:"bar"}, {name:"baz"}, {name:"tek"}]|any("value.name==\'foo\'")'
+            )
+        )
+        self.assertTrue(self.jexl.evaluate("assoc|every('value.age>30')", context))
+        self.assertFalse(self.jexl.evaluate("assoc|every('value.age>40')", context))
+        self.assertTrue(self.jexl.evaluate("assoc|some('value.age>40')", context))
+        self.assertTrue(
+            self.jexl.evaluate("assoc|some('value.lastName=='Figgis'')", context)
+        )
+        self.assertTrue(
+            self.jexl.evaluate("assoc|map('value.age')|some('value>30')", context)
+        )
+
+    def test_reduce(self):
+        context = {
+            "assoc": [
+                {"lastName": "Archer", "age": 32},
+                {"lastName": "Poovey", "age": 34},
+                {"lastName": "Figgis", "age": 45},
+            ]
+        }
+        self.assertEqual(
+            self.jexl.evaluate("assoc|reduce('accumulator + value.age', 0)", context),
+            111,
+        )
+        self.assertEqual(
+            self.jexl.evaluate(
+                "assoc|reduce('(value.age > array|map(\"value.age\")|avg) ? accumulator|append(value.age) : accumulator', [])",
+                context,
+            ),
+            [45],
+        )
+        self.assertEqual(
+            self.jexl.evaluate(
+                "assoc|reduce('(value.age < array|map(\"value.age\")|avg) ? accumulator|append(value.age) : accumulator', [])[1]",
+                context,
+            ),
+            34,
+        )
+
+    def test_objects(self):
+        self.assertEqual(
+            self.jexl.evaluate("$merge({foo:'bar'},{baz:'tek'})"),
+            {"foo": "bar", "baz": "tek"},
+        )
+        self.assertEqual(
+            self.jexl.evaluate("{foo:'bar'}|merge({baz:'tek'})"),
+            {"foo": "bar", "baz": "tek"},
+        )
+        self.assertEqual(
+            self.jexl.evaluate('[["foo","bar"],["baz","tek"]]|toObject'),
+            {"foo": "bar", "baz": "tek"},
+        )
+        self.assertEqual(
+            self.jexl.evaluate('["foo","bar"]|toObject(true)'),
+            {"foo": True, "bar": True},
+        )
+        self.assertEqual(
+            self.jexl.evaluate('["a","b","c"]|toObject(true)'),
+            {"a": True, "b": True, "c": True},
+        )

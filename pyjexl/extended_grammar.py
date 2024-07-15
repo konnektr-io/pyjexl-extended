@@ -7,6 +7,9 @@ import base64
 
 
 class ExtendedGrammar:
+    def __init__(self, jexl):
+        self.jexl = jexl
+
     """String functions"""
 
     @staticmethod
@@ -160,8 +163,19 @@ class ExtendedGrammar:
         return random.random()
 
     @staticmethod
-    def format_number(value, precision=2):
-        return "{:.{}f}".format(value, precision)
+    def format_number(value, format="0,0.000"):
+        # Determine if we need to include commas
+        if "," in format:
+            format = format.replace(",", "")
+            formatted_value = "{:,.{precision}f}".format(
+                value, precision=len(format.split(".")[1])
+            )
+        else:
+            formatted_value = "{:.{precision}f}".format(
+                value, precision=len(format.split(".")[1])
+            )
+
+        return formatted_value
 
     @staticmethod
     def format_base(value, base=10):
@@ -201,8 +215,182 @@ class ExtendedGrammar:
         values = value + rest
         return min(values)
 
+    @staticmethod
+    def avg(value, *rest):
+        if not isinstance(value, list):
+            value = [value]
+        rest = [v for v in rest]
+        if len(rest) > 0 and isinstance(rest[0], list):
+            rest = [v for va in rest for v in va]
+        values = value + rest
+        return sum(values) / len(values)
+
+    @staticmethod
+    def to_boolean(value):
+        if isinstance(value, bool):
+            return value
+        if isinstance(value, int):
+            return value != 0
+        if isinstance(value, str):
+            value = value.strip().lower()
+            if value == "true" or value == "1":
+                return True
+            if value == "false" or value == "0":
+                return False
+            return None
+        return bool(value)
+
+    @staticmethod
+    def not_(value):
+        return not ExtendedGrammar.to_boolean(value)
+
     """ Array functions """
 
     @staticmethod
-    def array_append(list_value):
-        return functools.reduce(lambda a, b: a + b, list_value)
+    def array_append(value, *rest):
+        if not isinstance(value, list):
+            value = [value]
+        rest = [v for v in rest]
+        if len(rest) > 0 and isinstance(rest[0], list):
+            rest = [v for va in rest for v in va]
+        return value + rest
+
+    @staticmethod
+    def array_reverse(value, *rest):
+        if not isinstance(value, list):
+            value = [value]
+        rest = [v for v in rest]
+        if len(rest) > 0 and isinstance(rest[0], list):
+            rest = [v for va in rest for v in va]
+        return (value + rest)[::-1]
+
+    @staticmethod
+    def array_shuffle(value):
+        if not isinstance(value, list):
+            value = [value]
+        random.shuffle(value)
+        return value
+
+    @staticmethod
+    def array_sort(value, reverse=False):
+        if not isinstance(value, list):
+            value = [value]
+        return sorted(value, reverse=reverse)
+
+    @staticmethod
+    def array_distinct(value):
+        if not isinstance(value, list):
+            value = [value]
+        return list(set(value))
+
+    @staticmethod
+    def array_to_object(input, val=None):
+        if isinstance(input, str):
+            return {input: val}
+        if not isinstance(input, list):
+            return {}
+        return functools.reduce(
+            lambda acc, kv: (
+                acc.update({kv[0]: kv[1]}) or acc
+                if isinstance(kv, list) and len(kv) == 2
+                else acc.update({kv: val}) or acc
+            ),
+            input,
+            {},
+        )
+
+    @staticmethod
+    def array_mapfield(input, field):
+        if not isinstance(input, list):
+            return []
+        return [item[field] for item in input]
+
+    def array_map(self, input, expression):
+        if not isinstance(input, list):
+            return None
+        expr = self.jexl.parse(expression)
+        return [
+            expr.eval({"value": value, "index": index, "array": input})
+            for index, value in enumerate(input)
+        ]
+
+    def array_any(self, input, expression):
+        if not isinstance(input, list):
+            return False
+        expr = self.jexl.parse(expression)
+        return any(
+            [
+                expr.eval({"value": value, "index": index, "array": input})
+                for index, value in enumerate(input)
+            ]
+        )
+
+    def array_every(self, input, expression):
+        if not isinstance(input, list):
+            return False
+        expr = self.jexl.parse(expression)
+        return all(
+            [
+                expr.eval({"value": value, "index": index, "array": input})
+                for index, value in enumerate(input)
+            ]
+        )
+
+    def array_filter(self, input, expression):
+        if not isinstance(input, list):
+            return []
+        expr = self.jexl.parse(expression)
+        return [
+            value
+            for index, value in enumerate(input)
+            if expr.eval({"value": value, "index": index, "array": input})
+        ]
+
+    def array_find(self, input, expression):
+        if not isinstance(input, list):
+            return None
+        expr = self.jexl.parse(expression)
+        return next(
+            (
+                value
+                for index, value in enumerate(input)
+                if expr.eval({"value": value, "index": index, "array": input})
+            ),
+            None,
+        )
+
+    def array_reduce(self, input, expression, initialValue=None):
+        if not isinstance(input, list):
+            return None
+        expr = self.jexl.parse(expression)
+        return functools.reduce(
+            lambda acc, value: expr.eval({"accumulator": acc, "value": value}),
+            input,
+            initialValue,
+        )
+
+    """ Object functions """
+
+    @staticmethod
+    def object_keys(input):
+        if isinstance(input, dict):
+            return list(input.keys())
+        return None
+
+    @staticmethod
+    def object_values(input):
+        if isinstance(input, dict):
+            return list(input.values())
+        return None
+
+    @staticmethod
+    def object_entries(input):
+        if isinstance(input, dict):
+            return list(input.items())
+        return None
+
+    @staticmethod
+    def object_merge(*args):
+        return {k: v for d in args for k, v in d.items()}
+
+    """ Date functions """

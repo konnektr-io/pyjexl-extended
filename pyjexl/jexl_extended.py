@@ -7,8 +7,10 @@ import math
 class JexlExtended(JEXL):
     def __init__(self, context=None):
         super().__init__(context=context)
+        self._extended_grammar = ExtendedGrammar(self)
 
-        # String functions
+        """ String functions """
+
         super().add_function("string", ExtendedGrammar.to_string)
         super().add_function("$string", ExtendedGrammar.to_string)
         super().add_transform("toString", ExtendedGrammar.to_string)
@@ -81,7 +83,8 @@ class JexlExtended(JEXL):
         super().add_function("$base64Decode", ExtendedGrammar.base64_decode)
         super().add_transform("base64Decode", ExtendedGrammar.base64_decode)
 
-        # Number functions
+        """ Number functions """
+
         super().add_function("number", ExtendedGrammar.to_number)
         super().add_function("$number", ExtendedGrammar.to_number)
         super().add_transform("number", ExtendedGrammar.to_number)
@@ -135,3 +138,97 @@ class JexlExtended(JEXL):
         super().add_function("min", ExtendedGrammar.min)
         super().add_function("$min", ExtendedGrammar.min)
         super().add_transform("min", ExtendedGrammar.min)
+        super().add_function("avg", ExtendedGrammar.avg)
+        super().add_function("$avg", ExtendedGrammar.avg)
+        super().add_function("average", ExtendedGrammar.avg)
+        super().add_function("$average", ExtendedGrammar.avg)
+        super().add_transform("avg", ExtendedGrammar.avg)
+        super().add_transform("average", ExtendedGrammar.avg)
+
+        """ Boolean functions """
+
+        super().add_function("boolean", ExtendedGrammar.to_boolean)
+        super().add_function("$boolean", ExtendedGrammar.to_boolean)
+        super().add_transform("boolean", ExtendedGrammar.to_boolean)
+        super().add_function("bool", ExtendedGrammar.to_boolean)
+        super().add_function("$bool", ExtendedGrammar.to_boolean)
+        super().add_transform("bool", ExtendedGrammar.to_boolean)
+        super().add_transform("toBoolean", ExtendedGrammar.to_boolean)
+        super().add_transform("toBool", ExtendedGrammar.to_boolean)
+        super().add_function("not", ExtendedGrammar.not_)
+        super().add_function("$not", ExtendedGrammar.not_)
+        super().add_transform("not", ExtendedGrammar.not_)
+
+        """ Array functions """
+
+        super().add_function("append", ExtendedGrammar.array_append)
+        super().add_function("$append", ExtendedGrammar.array_append)
+        super().add_transform("append", ExtendedGrammar.array_append)
+        super().add_function("concat", ExtendedGrammar.array_append)
+        super().add_function("$concat", ExtendedGrammar.array_append)
+        super().add_transform("concat", ExtendedGrammar.array_append)
+        super().add_function("reverse", ExtendedGrammar.array_reverse)
+        super().add_function("$reverse", ExtendedGrammar.array_reverse)
+        super().add_transform("reverse", ExtendedGrammar.array_reverse)
+        super().add_function("shuffle", ExtendedGrammar.array_shuffle)
+        super().add_function("$shuffle", ExtendedGrammar.array_shuffle)
+        super().add_transform("shuffle", ExtendedGrammar.array_shuffle)
+        super().add_function("sort", ExtendedGrammar.array_sort)
+        super().add_function("$sort", ExtendedGrammar.array_sort)
+        super().add_transform("sort", ExtendedGrammar.array_sort)
+        super().add_function("order", ExtendedGrammar.array_sort)
+        super().add_function("$order", ExtendedGrammar.array_sort)
+        super().add_transform("order", ExtendedGrammar.array_sort)
+        super().add_function("distinct", ExtendedGrammar.array_distinct)
+        super().add_function("$distinct", ExtendedGrammar.array_distinct)
+        super().add_transform("distinct", ExtendedGrammar.array_distinct)
+        super().add_function("toObject", ExtendedGrammar.array_to_object)
+        super().add_function("$toObject", ExtendedGrammar.array_to_object)
+        super().add_transform("toObject", ExtendedGrammar.array_to_object)
+        super().add_function("fromEntries", ExtendedGrammar.array_to_object)
+        super().add_function("$fromEntries", ExtendedGrammar.array_to_object)
+        super().add_transform("fromEntries", ExtendedGrammar.array_to_object)
+        super().add_function("mapField", ExtendedGrammar.array_mapfield)
+        super().add_function("$mapField", ExtendedGrammar.array_mapfield)
+        super().add_transform("mapField", ExtendedGrammar.array_mapfield)
+        super().add_function("map", self._extended_grammar.array_map)
+        super().add_function("$map", self._extended_grammar.array_map)
+        super().add_transform("map", self._extended_grammar.array_map)
+        super().add_function("any", self._extended_grammar.array_any)
+        super().add_function("$any", self._extended_grammar.array_any)
+        super().add_transform("any", self._extended_grammar.array_any)
+        super().add_function("some", self._extended_grammar.array_any)
+        super().add_function("$some", self._extended_grammar.array_any)
+        super().add_transform("some", self._extended_grammar.array_any)
+        super().add_function("all", self._extended_grammar.array_every)
+        super().add_function("$all", self._extended_grammar.array_every)
+        super().add_transform("all", self._extended_grammar.array_every)
+        super().add_function("every", self._extended_grammar.array_every)
+        super().add_function("$every", self._extended_grammar.array_every)
+        super().add_transform("every", self._extended_grammar.array_every)
+        super().add_function("filter", self._extended_grammar.array_filter)
+        super().add_function("$filter", self._extended_grammar.array_filter)
+        super().add_transform("filter", self._extended_grammar.array_filter)
+        super().add_function("find", self._extended_grammar.array_find)
+        super().add_function("$find", self._extended_grammar.array_find)
+        super().add_transform("find", self._extended_grammar.array_find)
+        super().add_function("reduce", self._extended_grammar.array_reduce)
+        super().add_function("$reduce", self._extended_grammar.array_reduce)
+        super().add_transform("reduce", self._extended_grammar.array_reduce)
+
+        """ Object functions """
+
+        super().add_function("keys", ExtendedGrammar.object_keys)
+        super().add_function("$keys", ExtendedGrammar.object_keys)
+        super().add_transform("keys", ExtendedGrammar.object_keys)
+        super().add_function("values", ExtendedGrammar.object_values)
+        super().add_function("$values", ExtendedGrammar.object_values)
+        super().add_transform("values", ExtendedGrammar.object_values)
+        super().add_function("entries", ExtendedGrammar.object_entries)
+        super().add_function("$entries", ExtendedGrammar.object_entries)
+        super().add_transform("entries", ExtendedGrammar.object_entries)
+        super().add_function("merge", ExtendedGrammar.object_merge)
+        super().add_function("$merge", ExtendedGrammar.object_merge)
+        super().add_transform("merge", ExtendedGrammar.object_merge)
+
+        """ Date functions """
