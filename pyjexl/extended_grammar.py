@@ -1,13 +1,17 @@
+import datetime
 import functools
 import json
 import math
 import random
 import re
 import base64
+import uuid
+
+from pyjexl.jexl import JEXL
 
 
 class ExtendedGrammar:
-    def __init__(self, jexl):
+    def __init__(self, jexl: JEXL):
         self.jexl = jexl
 
     """String functions"""
@@ -394,3 +398,52 @@ class ExtendedGrammar:
         return {k: v for d in args for k, v in d.items()}
 
     """ Date functions """
+
+    @staticmethod
+    def now():
+        return datetime.datetime.isoformat(datetime.datetime.now())
+
+    @staticmethod
+    def millis():
+        return datetime.datetime.now().timestamp() * 1000
+
+    @staticmethod
+    def to_datetime(value):
+        return datetime.datetime.fromtimestamp(value / 1000).isoformat()
+
+    @staticmethod
+    def to_millis(value):
+        return datetime.datetime.fromisoformat(value).timestamp() * 1000
+
+    @staticmethod
+    def datetime_add(input, unit, value):
+        input_datetime = datetime.datetime.fromisoformat(input)
+        if not str.endswith(unit, "s"):
+            unit = unit + "s"
+        if unit == "years":
+            return input_datetime + datetime.timedelta(days=365 * value)
+        if unit == "months":
+            return input_datetime + datetime.timedelta(days=30 * value)
+        if unit == "days":
+            return input_datetime + datetime.timedelta(days=value)
+        if unit == "hours":
+            return input_datetime + datetime.timedelta(hours=value)
+        if unit == "minutes":
+            return input_datetime + datetime.timedelta(minutes=value)
+        if unit == "seconds":
+            return input_datetime + datetime.timedelta(seconds=value)
+        if unit == "milliseconds":
+            return input_datetime + datetime.timedelta(milliseconds=value)
+        return None
+
+    """ Misc """
+
+    def _eval(self, input, expression):
+        if not isinstance(expression, str) and isinstance(input, str):
+            return self.jexl.evaluate(expression)
+        if isinstance(input, dict) and isinstance(expression, str):
+            return self.jexl.evaluate(expression, input)
+        return None
+
+    def uuid(self):
+        return str(uuid.uuid4())
