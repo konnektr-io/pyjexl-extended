@@ -107,6 +107,16 @@ class ExtendedGrammar:
         return search in value
 
     @staticmethod
+    def starts_with(value, search):
+        value = ExtendedGrammar.to_string(value)
+        return value.startswith(search)
+
+    @staticmethod
+    def ends_with(value, search):
+        value = ExtendedGrammar.to_string(value)
+        return value.endswith(search)
+
+    @staticmethod
     def split(value: str, sep=","):
         return value.split(sep)
 
