@@ -72,6 +72,7 @@ class JexlExtendedTests(unittest.TestCase):
     def test_trim_pad(self):
         self.assertEqual(self.jexl.evaluate('trim(" baz  ")'), "baz")
         self.assertEqual(self.jexl.evaluate('trim("  baz  ")'), "baz")
+        self.assertEqual(self.jexl.evaluate('trim("__baz--","--")'), "__baz")
         self.assertEqual(self.jexl.evaluate('pad("foo",5)'), "foo  ")
         self.assertEqual(self.jexl.evaluate('pad("foo",-5,0)'), "00foo")
 

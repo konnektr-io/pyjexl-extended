@@ -264,9 +264,9 @@ class JexlExtended(JEXL):
 
         """ Misc """
 
-        super().add_function("eval", ExtendedGrammar.eval_)
-        super().add_function("$eval", ExtendedGrammar.eval_)
-        super().add_transform("eval", ExtendedGrammar.eval_)
+        super().add_function("eval", ExtendedGrammar._eval)
+        super().add_function("$eval", ExtendedGrammar._eval)
+        super().add_transform("eval", ExtendedGrammar._eval)
         super().add_function("uuid", ExtendedGrammar.uuid)
         super().add_function("$uuid", ExtendedGrammar.uuid)
         super().add_function("uid", ExtendedGrammar.uuid)

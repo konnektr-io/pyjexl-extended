@@ -89,8 +89,8 @@ class ExtendedGrammar:
         return camel_case_value
 
     @staticmethod
-    def trim(value):
-        return ExtendedGrammar.to_string(value).strip()
+    def trim(value, trim_char=" "):
+        return ExtendedGrammar.to_string(value).strip(trim_char)
 
     @staticmethod
     def pad(value, width, char=" "):
