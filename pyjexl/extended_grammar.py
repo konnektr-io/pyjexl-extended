@@ -193,11 +193,34 @@ class ExtendedGrammar:
 
     @staticmethod
     def format_base(value, base=10):
-        return format(value, "0" + str(base) + "d")
+        if base == 10:
+            return str(value)
+        elif base == 16:
+            return hex(value)[2:]  # Remove the '0x' prefix
+        elif base == 8:
+            return oct(value)[2:]  # Remove the '0o' prefix
+        elif base == 2:
+            return bin(value)[2:]  # Remove the '0b' prefix
+        else:
+            # Custom implementation for other bases
+            digits = "0123456789abcdefghijklmnopqrstuvwxyz"
+            if base > len(digits):
+                raise ValueError("Base too large")
+            result = ""
+            while value > 0:
+                result = digits[value % base] + result
+                value //= base
+            return result or "0"
 
     @staticmethod
-    def format_integer(value, base=10):
-        return int(value, base)
+    def format_integer(value, format="0000000"):
+        # Convert the value to an integer
+        integer_value = int(float(value))
+
+        # Format the integer value according to the specified format
+        formatted_value = f"{integer_value:0{len(format)}d}"
+
+        return formatted_value
 
     @staticmethod
     def sum(value, *rest):
@@ -405,7 +428,15 @@ class ExtendedGrammar:
 
     @staticmethod
     def object_merge(*args):
-        return {k: v for d in args for k, v in d.items()}
+        result = {}
+        for arg in args:
+            if isinstance(arg, list):
+                for obj in arg:
+                    if isinstance(obj, dict):
+                        result.update(obj)
+            elif isinstance(arg, dict):
+                result.update(arg)
+        return result
 
     """ Date functions """
 

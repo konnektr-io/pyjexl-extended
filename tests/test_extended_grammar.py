@@ -334,6 +334,14 @@ class JexlExtendedTests(unittest.TestCase):
             {"foo": "bar", "baz": "tek"},
         )
         self.assertEqual(
+            self.jexl.evaluate("[{foo:'bar'},{baz:'tek'}]|merge"),
+            {"foo": "bar", "baz": "tek"},
+        )
+        self.assertEqual(
+            self.jexl.evaluate("[{foo:'bar'}]|merge([{baz:'tek'}])"),
+            {"foo": "bar", "baz": "tek"},
+        )
+        self.assertEqual(
             self.jexl.evaluate('[["foo","bar"],["baz","tek"]]|toObject'),
             {"foo": "bar", "baz": "tek"},
         )
