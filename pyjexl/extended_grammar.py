@@ -27,6 +27,10 @@ class ExtendedGrammar:
         return str(value)
 
     @staticmethod
+    def to_json(value):
+        return json.loads(value)
+
+    @staticmethod
     def length(value):
         return len(value)
 
