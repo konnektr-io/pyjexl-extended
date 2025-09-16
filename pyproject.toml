@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "pyjexl-extended"
-version = "0.1.1"
+version = "0.1.2"
 description = "A JEXL parser and evaluator with extended grammar (80+ built-in functions and transforms)."
 readme = "README.md"
 requires-python = ">=3.6"
@@ -31,9 +31,8 @@ Homepage = "https://github.com/nikoraes/pyjexl-extended"
 Repository = "https://github.com/nikoraes/pyjexl-extended"
 Playground = "https://nikoraes.github.io/jexl-playground/"
 
-[tool.setuptools.packages.find]
-where = ["pyjexl"]
-exclude = ["tests*"]
+[tool.setuptools.packages]
+find = { where = ["pyjexl"], exclude = ["tests*"] }
 
 [tool.setuptools]
 include-package-data = true
