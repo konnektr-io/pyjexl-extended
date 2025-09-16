@@ -1,8 +1,0 @@
-future
-hypothesis
-parsimonious
-pytest
-flake8
-flake8-junit-report
-twine
-wheel
