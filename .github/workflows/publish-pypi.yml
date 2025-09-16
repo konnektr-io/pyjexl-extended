@@ -29,8 +29,4 @@ jobs:
           python -m build
 
       - name: Publish to PyPI
-        uses: pypa/gh-action-pypi-publish@v1.8.12
-        with:
-          # OIDC authentication, no password needed
-          # See https://docs.pypi.org/trusted-publishers/using-a-publisher/
-          repository-url: https://upload.pypi.org/legacy/
+        uses: pypa/gh-action-pypi-publish@release/v1
