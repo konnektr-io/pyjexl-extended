@@ -94,6 +94,9 @@ class JexlExtended(JEXL):
         super().add_function("base64Decode", ExtendedGrammar.base64_decode)
         super().add_function("$base64Decode", ExtendedGrammar.base64_decode)
         super().add_transform("base64Decode", ExtendedGrammar.base64_decode)
+        super().add_function("formUrlEncoded", ExtendedGrammar.form_url_encoded)
+        super().add_function("$formUrlEncoded", ExtendedGrammar.form_url_encoded)
+        super().add_transform("formUrlEncoded", ExtendedGrammar.form_url_encoded)
 
         """ Number functions """
 

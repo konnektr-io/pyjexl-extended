@@ -119,6 +119,12 @@ class JexlExtendedTests(unittest.TestCase):
         self.assertEqual(self.jexl.evaluate('base64Encode("foobar")'), "Zm9vYmFy")
         self.assertEqual(self.jexl.evaluate('base64Decode("Zm9vYmFy")'), "foobar")
 
+    def test_form_url_encoded(self):
+        self.assertEqual(
+            self.jexl.evaluate('{foo:"bar",baz:"tek"}|formUrlEncoded'),
+            "foo=bar&baz=tek",
+        )
+
     def test_number(self):
         self.assertEqual(self.jexl.evaluate('$number("1")'), 1)
         self.assertEqual(self.jexl.evaluate('$number("1.1")'), 1.1)

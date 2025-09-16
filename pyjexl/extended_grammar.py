@@ -140,6 +140,13 @@ class ExtendedGrammar:
     def base64_decode(input: str):
         return base64.b64decode(input.encode("utf-8")).decode("utf-8")
 
+    @staticmethod
+    def form_url_encoded(value):
+        # Only works for dicts
+        if isinstance(value, dict):
+            return "&".join(f"{k}={v}" for k, v in value.items())
+        return str(value)
+
     """Number functions"""
 
     @staticmethod
