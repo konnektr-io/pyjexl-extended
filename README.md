@@ -5,12 +5,17 @@ Python implementation of the JEXL expression language with **extended grammar**�
 
 **NOTE:** This library is based on [TomFrost's JEXL](https://github.com/TomFrost/Jexl) and extends the original [mozilla/pyjexl](https://github.com/mozilla/pyjexl) with a rich set of features inspired by [jexl-extended](https://github.com/nikoraes/jexl-extended).
 
+
 ## Features
 
 - 🚀 **80+ Built-in Functions & Transforms**: String manipulation, math, arrays, objects, dates, and more
 - 🧩 **Modular Grammar**: Use the entire library or import individual functions
 - 🐍 **Pythonic Semantics**: Type-safe, predictable behavior
 - 🧪 **Extensible**: Add your own functions, transforms, and operators
+
+---
+
+📚 **Full Documentation:** [https://docs.konnektr.io/docs/jexl/](https://docs.konnektr.io/docs/jexl/)
 
 ## Quick Start
 
