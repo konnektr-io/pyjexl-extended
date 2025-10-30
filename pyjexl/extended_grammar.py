@@ -295,6 +295,12 @@ class ExtendedGrammar:
     """ Array functions """
 
     @staticmethod
+    def array_range(value, start, end=None):
+        if not isinstance(value, list):
+            return []
+        return value[start:end]
+
+    @staticmethod
     def array_append(value, *rest):
         if not isinstance(value, list):
             value = [value]
@@ -341,7 +347,7 @@ class ExtendedGrammar:
             lambda acc, kv: (
                 acc.update({kv[0]: kv[1]}) or acc
                 if isinstance(kv, list) and len(kv) == 2
-                else acc.update({kv: val}) or acc
+                else acc.update({str(kv): val}) or acc
             ),
             input,
             {},
