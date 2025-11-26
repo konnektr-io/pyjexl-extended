@@ -359,3 +359,42 @@ class JexlExtendedTests(unittest.TestCase):
             self.jexl.evaluate('["a","b","c"]|toObject(true)'),
             {"a": True, "b": True, "c": True},
         )
+
+    def test_convert_time_zone(self):
+        # Windows timezone
+        self.assertEqual(
+            self.jexl.evaluate(
+                "'2025-11-26T12:00:00Z'|convertTimeZone('Pacific Standard Time')"
+            ),
+            "2025-11-26T04:00:00.0000000-08:00",
+        )
+        self.assertEqual(
+            self.jexl.evaluate(
+                "'2025-06-26T12:00:00Z'|convertTimeZone('Pacific Standard Time')"
+            ),
+            "2025-06-26T05:00:00.0000000-07:00",
+        )
+        # IANA timezone
+        self.assertEqual(
+            self.jexl.evaluate(
+                "'2025-06-26T12:00:00Z'|convertTimeZone('Europe/Amsterdam')"
+            ),
+            "2025-06-26T14:00:00.0000000+02:00",
+        )
+        self.assertEqual(
+            self.jexl.evaluate("'2025-11-26T12:00:00Z'|convertTimeZone('UTC')"),
+            "2025-11-26T12:00:00.0000000+00:00",
+        )
+        # Fixed offsets
+        self.assertEqual(
+            self.jexl.evaluate("'2025-11-26T12:00:00Z'|convertTimeZone('+02:00')"),
+            "2025-11-26T14:00:00.0000000+02:00",
+        )
+        self.assertEqual(
+            self.jexl.evaluate("'2025-06-26T12:00:00Z'|convertTimeZone('-08:00')"),
+            "2025-06-26T04:00:00.0000000-08:00",
+        )
+        self.assertEqual(
+            self.jexl.evaluate("'2025-12-26T12:00:00Z'|convertTimeZone('-08:00')"),
+            "2025-12-26T04:00:00.0000000-08:00",
+        )

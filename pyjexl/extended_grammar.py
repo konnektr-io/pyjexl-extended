@@ -494,6 +494,77 @@ class ExtendedGrammar:
             return input_datetime + datetime.timedelta(milliseconds=value)
         return None
 
+    @staticmethod
+    def convert_time_zone(input, target_timezone):
+        """
+        Converts an ISO datetime string to a target timezone, handling daylight savings, and returns an ISO string with the correct offset.
+        """
+        try:
+            from dateutil import parser as dtparser
+            import pytz
+        except ImportError:
+            raise ImportError("dateutil and pytz are required for timezone conversion.")
+
+        # Minimal Windows to IANA mapping (extend as needed)
+        WINDOWS_TZ_MAP = {
+            "Pacific Standard Time": "America/Los_Angeles",
+            "UTC": "UTC",
+            # Add more mappings as needed
+        }
+
+        # Parse input datetime
+        if not isinstance(input, str):
+            input = ExtendedGrammar.to_string(input)
+        try:
+            dt = dtparser.isoparse(input)
+        except Exception:
+            return None
+
+        # Ensure datetime is aware (UTC if Z or no offset)
+        if dt.tzinfo is None:
+            dt = dt.replace(tzinfo=pytz.UTC)
+
+        tz_str = ExtendedGrammar.to_string(target_timezone)
+
+        # Check for fixed offset (e.g., +02:00, -08:00)
+        offset_match = re.match(r"^([+-])(\d{2}):(\d{2})$", tz_str)
+        if offset_match:
+            sign = 1 if offset_match.group(1) == "+" else -1
+            hours = int(offset_match.group(2))
+            minutes = int(offset_match.group(3))
+            offset = datetime.timedelta(hours=sign * hours, minutes=sign * minutes)
+            tzinfo = datetime.timezone(offset)
+            dt_converted = dt.astimezone(tzinfo)
+        else:
+            # Try Windows mapping
+            iana_tz = WINDOWS_TZ_MAP.get(tz_str, tz_str)
+            try:
+                tzinfo = pytz.timezone(iana_tz)
+            except Exception:
+                # Try to find by case-insensitive match
+                try:
+                    tzinfo = next(
+                        z
+                        for z in map(pytz.timezone, pytz.all_timezones)
+                        if z.zone.lower() == iana_tz.lower()
+                    )
+                except Exception:
+                    return None
+            dt_converted = dt.astimezone(tzinfo)
+
+        # Format: ISO string with 7 digits microseconds and offset
+        iso_str = dt_converted.strftime("%Y-%m-%dT%H:%M:%S.%f%z")
+        # Insert colon in offset for ISO compliance
+        if iso_str.endswith("+0000"):
+            iso_str = iso_str[:-5] + "+00:00"
+        elif iso_str[-5] in ["+", "-"]:
+            iso_str = iso_str[:-5] + iso_str[-5:-2] + ":" + iso_str[-2:]
+        # Truncate microseconds to 7 digits
+        if "." in iso_str:
+            ms = iso_str.split(".")[1][:7]
+            iso_str = iso_str.split(".")[0] + "." + ms + iso_str[-6:]
+        return iso_str
+
     """ Misc """
 
     def _eval(self, input, expression):

@@ -70,6 +70,10 @@ class JexlExtended(JEXL):
         super().add_function("contains", ExtendedGrammar.contains)
         super().add_function("$contains", ExtendedGrammar.contains)
         super().add_transform("contains", ExtendedGrammar.contains)
+        # DateTime timezone conversion
+        super().add_function("convertTimeZone", ExtendedGrammar.convert_time_zone)
+        super().add_function("$convertTimeZone", ExtendedGrammar.convert_time_zone)
+        super().add_transform("convertTimeZone", ExtendedGrammar.convert_time_zone)
         super().add_function("includes", ExtendedGrammar.contains)
         super().add_function("$includes", ExtendedGrammar.contains)
         super().add_transform("includes", ExtendedGrammar.contains)
