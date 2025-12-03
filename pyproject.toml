@@ -32,7 +32,7 @@ Repository = "https://github.com/nikoraes/pyjexl-extended"
 Playground = "https://nikoraes.github.io/jexl-playground/"
 
 [tool.setuptools.packages]
-find = { where = ["."], exclude = ["tests*"] }
+find = { include = ["pyjexl"], exclude = ["tests*"] }
 
 [tool.setuptools]
 include-package-data = true
