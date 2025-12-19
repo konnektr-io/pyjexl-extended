@@ -6,6 +6,8 @@ import random
 import re
 import base64
 import uuid
+from dateutil import parser as dtparser
+import pytz
 
 from pyjexl.jexl import JEXL
 
@@ -499,12 +501,6 @@ class ExtendedGrammar:
         """
         Converts an ISO datetime string to a target timezone, handling daylight savings, and returns an ISO string with the correct offset.
         """
-        try:
-            from dateutil import parser as dtparser
-            import pytz
-        except ImportError:
-            raise ImportError("dateutil and pytz are required for timezone conversion.")
-
         # Minimal Windows to IANA mapping (extend as needed)
         WINDOWS_TZ_MAP = {
             "Pacific Standard Time": "America/Los_Angeles",
@@ -554,6 +550,80 @@ class ExtendedGrammar:
 
         # Format: ISO string with 7 digits microseconds and offset
         iso_str = dt_converted.strftime("%Y-%m-%dT%H:%M:%S.%f%z")
+        # Insert colon in offset for ISO compliance
+        if iso_str.endswith("+0000"):
+            iso_str = iso_str[:-5] + "+00:00"
+        elif iso_str[-5] in ["+", "-"]:
+            iso_str = iso_str[:-5] + iso_str[-5:-2] + ":" + iso_str[-2:]
+        # Truncate microseconds to 7 digits
+        if "." in iso_str:
+            ms = iso_str.split(".")[1][:7]
+            iso_str = iso_str.split(".")[0] + "." + ms + iso_str[-6:]
+        return iso_str
+
+    @staticmethod
+    def local_time_to_iso_with_offset(local_time, time_zone):
+        """
+        Converts a local time string in a specified timezone to an ISO datetime string with the correct offset.
+
+        Example:
+            local_time_to_iso_with_offset('2025-06-26 14:00:00', 'Europe/Amsterdam') -> '2025-06-26T14:00:00.0000000+02:00'
+            local_time_to_iso_with_offset('2025-06-26 05:00:00', 'Pacific Standard Time') -> '2025-06-26T05:00:00.0000000-08:00'
+
+        :param local_time: Local time string
+        :param time_zone: Timezone (IANA or Windows ID or fixed offset)
+        :return: ISO datetime string with correct offset, or None if conversion fails
+        """
+        # Minimal Windows to IANA mapping (extend as needed)
+        WINDOWS_TZ_MAP = {
+            "Pacific Standard Time": "America/Los_Angeles",
+            "UTC": "UTC",
+            # Add more mappings as needed
+        }
+
+        # Parse the local time string (assume naive)
+        try:
+            dt = dtparser.parse(local_time)
+        except Exception:
+            return None
+
+        tz_str = str(time_zone)
+
+        # Check for fixed offset (e.g., +02:00, -08:00)
+        offset_match = re.match(r"^([+-])(\d{2}):(\d{2})$", tz_str)
+        if offset_match:
+            sign = 1 if offset_match.group(1) == "+" else -1
+            hours = int(offset_match.group(2))
+            minutes = int(offset_match.group(3))
+            offset = datetime.timedelta(hours=sign * hours, minutes=sign * minutes)
+            tzinfo = datetime.timezone(offset)
+        else:
+            # Try Windows mapping
+            iana_tz = WINDOWS_TZ_MAP.get(tz_str, tz_str)
+            try:
+                tzinfo = pytz.timezone(iana_tz)
+            except Exception:
+                # Try to find by case-insensitive match
+                try:
+                    tzinfo = next(
+                        z
+                        for z in map(pytz.timezone, pytz.all_timezones)
+                        if z.zone.lower() == iana_tz.lower()
+                    )
+                except Exception:
+                    return None
+
+        # Localize naive datetime to the timezone
+        try:
+            if hasattr(tzinfo, "localize"):
+                dt_local = tzinfo.localize(dt)
+            else:
+                dt_local = dt.replace(tzinfo=tzinfo)
+        except Exception:
+            return None
+
+        # Format: ISO string with 7 digits microseconds and offset
+        iso_str = dt_local.strftime("%Y-%m-%dT%H:%M:%S.%f%z")
         # Insert colon in offset for ISO compliance
         if iso_str.endswith("+0000"):
             iso_str = iso_str[:-5] + "+00:00"

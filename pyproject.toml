@@ -24,12 +24,17 @@ classifiers = [
     "Programming Language :: Python :: 3.11",
     "Programming Language :: Python :: 3.12",
 ]
-dependencies = ["parsimonious", "future"]
+dependencies = [
+    "parsimonious",
+    "future",
+    "python-dateutil",
+    "pytz"
+]
 
 [project.urls]
-Homepage = "https://github.com/nikoraes/pyjexl-extended"
-Repository = "https://github.com/nikoraes/pyjexl-extended"
-Playground = "https://nikoraes.github.io/jexl-playground/"
+Homepage = "https://github.com/konnektr-io/pyjexl-extended"
+Repository = "https://github.com/konnektr-io/pyjexl-extended"
+Playground = "https://jexl-playground.konnektr.io/"
 
 
 [tool.setuptools.packages.find]
