@@ -101,6 +101,10 @@ class JexlExtended(JEXL):
         super().add_function("formUrlEncoded", ExtendedGrammar.form_url_encoded)
         super().add_function("$formUrlEncoded", ExtendedGrammar.form_url_encoded)
         super().add_transform("formUrlEncoded", ExtendedGrammar.form_url_encoded)
+        # Type
+        super().add_function("type", ExtendedGrammar.get_type)
+        super().add_function("$type", ExtendedGrammar.get_type)
+        super().add_transform("type", ExtendedGrammar.get_type)
 
         """ Number functions """
 
@@ -163,6 +167,13 @@ class JexlExtended(JEXL):
         super().add_function("$average", ExtendedGrammar.avg)
         super().add_transform("avg", ExtendedGrammar.avg)
         super().add_transform("average", ExtendedGrammar.avg)
+        # SwitchCase
+        super().add_function("case", ExtendedGrammar.switch_case)
+        super().add_function("$case", ExtendedGrammar.switch_case)
+        super().add_transform("case", ExtendedGrammar.switch_case)
+        super().add_function("switch", ExtendedGrammar.switch_case)
+        super().add_function("$switch", ExtendedGrammar.switch_case)
+        super().add_transform("switch", ExtendedGrammar.switch_case)
 
         """ Boolean functions """
 
@@ -210,6 +221,10 @@ class JexlExtended(JEXL):
         super().add_function("mapField", ExtendedGrammar.array_mapfield)
         super().add_function("$mapField", ExtendedGrammar.array_mapfield)
         super().add_transform("mapField", ExtendedGrammar.array_mapfield)
+        # Range
+        super().add_function("range", ExtendedGrammar.array_range)
+        super().add_function("$range", ExtendedGrammar.array_range)
+        super().add_transform("range", ExtendedGrammar.array_range)
         super().add_function("map", self._extended_grammar.array_map)
         super().add_function("$map", self._extended_grammar.array_map)
         super().add_transform("map", self._extended_grammar.array_map)
@@ -231,6 +246,9 @@ class JexlExtended(JEXL):
         super().add_function("find", self._extended_grammar.array_find)
         super().add_function("$find", self._extended_grammar.array_find)
         super().add_transform("find", self._extended_grammar.array_find)
+        super().add_function("findIndex", self._extended_grammar.array_find_index)
+        super().add_function("$findIndex", self._extended_grammar.array_find_index)
+        super().add_transform("findIndex", self._extended_grammar.array_find_index)
         super().add_function("reduce", self._extended_grammar.array_reduce)
         super().add_function("$reduce", self._extended_grammar.array_reduce)
         super().add_transform("reduce", self._extended_grammar.array_reduce)
@@ -274,6 +292,9 @@ class JexlExtended(JEXL):
         super().add_function("dateTimeAdd", ExtendedGrammar.datetime_add)
         super().add_function("$dateTimeAdd", ExtendedGrammar.datetime_add)
         super().add_transform("dateTimeAdd", ExtendedGrammar.datetime_add)
+        super().add_function("dateTimeFormat", ExtendedGrammar.datetime_format)
+        super().add_function("$dateTimeFormat", ExtendedGrammar.datetime_format)
+        super().add_transform("dateTimeFormat", ExtendedGrammar.datetime_format)
 
         """ Misc """
 

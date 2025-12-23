@@ -106,6 +106,10 @@ class JEXL(object):
             yield str(err)
 
     def evaluate(self, expression, context=None):
-        parsed_expression = self.parse(expression)
+        # If expression is a string, parse it; otherwise, assume it's already parsed
+        if isinstance(expression, str):
+            parsed_expression = self.parse(expression)
+        else:
+            parsed_expression = expression
         context = Context(context) if context is not None else self.context
         return Evaluator(self.config).evaluate(parsed_expression, context)

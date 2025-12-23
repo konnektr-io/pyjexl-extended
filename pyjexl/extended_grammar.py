@@ -39,9 +39,20 @@ class ExtendedGrammar:
     @staticmethod
     def substring(value: any, start: int, length: int = None):
         if not isinstance(value, str):
-            value = ExtendedGrammar.to_string(value)
-        fin = start + length if length else len(value)
-        return value[start:fin]
+            value = json.dumps(value)
+        start_num = start
+        if start_num < 0:
+            start_num = len(value) + start_num
+            if start_num < 0:
+                start_num = 0
+        if length is None:
+            return value[start_num:]
+        fin = start_num + length
+        if fin > len(value):
+            fin = len(value)
+        if fin < start_num:
+            fin = start_num
+        return value[start_num:fin]
 
     @staticmethod
     def substring_before(value: any, chars: any):
@@ -144,10 +155,31 @@ class ExtendedGrammar:
 
     @staticmethod
     def form_url_encoded(value):
-        # Only works for dicts
-        if isinstance(value, dict):
-            return "&".join(f"{k}={v}" for k, v in value.items())
-        return str(value)
+        if isinstance(value, str):
+            import urllib.parse
+            return urllib.parse.quote(value)
+        elif isinstance(value, dict):
+            import urllib.parse
+            return urllib.parse.urlencode(value)
+        return ""
+
+    @staticmethod
+    def switch_case(*args):
+        if len(args) < 3:
+            return None
+        expression_result = args[0]
+        # Iterate in pairs
+        for i in range(1, len(args) - 1, 2):
+            case_result = args[i]
+            # Use JSON comparison for consistency with JS
+            if json.dumps(expression_result, sort_keys=True) == json.dumps(
+                case_result, sort_keys=True
+            ):
+                return args[i + 1]
+        # Return default if exists (even number of args means default is provided)
+        if len(args) % 2 == 0:
+            return args[-1]
+        return None
 
     """Number functions"""
 
@@ -243,7 +275,7 @@ class ExtendedGrammar:
         if len(rest) > 0 and isinstance(rest[0], list):
             rest = [v for va in rest for v in va]
         values = value + rest
-        return sum(values)
+        return float(sum(values))
 
     @staticmethod
     def max(value, *rest):
@@ -253,7 +285,7 @@ class ExtendedGrammar:
         if len(rest) > 0 and isinstance(rest[0], list):
             rest = [v for va in rest for v in va]
         values = value + rest
-        return max(values)
+        return float(max(values))
 
     @staticmethod
     def min(value, *rest):
@@ -263,7 +295,7 @@ class ExtendedGrammar:
         if len(rest) > 0 and isinstance(rest[0], list):
             rest = [v for va in rest for v in va]
         values = value + rest
-        return min(values)
+        return float(min(values))
 
     @staticmethod
     def avg(value, *rest):
@@ -273,7 +305,7 @@ class ExtendedGrammar:
         if len(rest) > 0 and isinstance(rest[0], list):
             rest = [v for va in rest for v in va]
         values = value + rest
-        return sum(values) / len(values)
+        return float(sum(values) / len(values))
 
     @staticmethod
     def to_boolean(value):
@@ -327,11 +359,17 @@ class ExtendedGrammar:
         random.shuffle(value)
         return value
 
-    @staticmethod
-    def array_sort(value, reverse=False):
+    def array_sort(self, value, expression=None, descending=False):
         if not isinstance(value, list):
             value = [value]
-        return sorted(value, reverse=reverse)
+        if not expression:
+            return sorted(value, reverse=descending)
+        expr = self.jexl.parse(expression)
+        return sorted(
+            value,
+            key=lambda x: self.jexl.evaluate(expr, x),
+            reverse=descending,
+        )
 
     @staticmethod
     def array_distinct(value):
@@ -366,7 +404,7 @@ class ExtendedGrammar:
             return None
         expr = self.jexl.parse(expression)
         return [
-            expr.eval({"value": value, "index": index, "array": input})
+            self.jexl.evaluate(expr, {"value": value, "index": index, "array": input})
             for index, value in enumerate(input)
         ]
 
@@ -376,7 +414,7 @@ class ExtendedGrammar:
         expr = self.jexl.parse(expression)
         return any(
             [
-                expr.eval({"value": value, "index": index, "array": input})
+                self.jexl.evaluate(expr, {"value": value, "index": index, "array": input})
                 for index, value in enumerate(input)
             ]
         )
@@ -387,7 +425,7 @@ class ExtendedGrammar:
         expr = self.jexl.parse(expression)
         return all(
             [
-                expr.eval({"value": value, "index": index, "array": input})
+                self.jexl.evaluate(expr, {"value": value, "index": index, "array": input})
                 for index, value in enumerate(input)
             ]
         )
@@ -399,7 +437,7 @@ class ExtendedGrammar:
         return [
             value
             for index, value in enumerate(input)
-            if expr.eval({"value": value, "index": index, "array": input})
+            if self.jexl.evaluate(expr, {"value": value, "index": index, "array": input})
         ]
 
     def array_find(self, input, expression):
@@ -410,17 +448,28 @@ class ExtendedGrammar:
             (
                 value
                 for index, value in enumerate(input)
-                if expr.eval({"value": value, "index": index, "array": input})
+                if self.jexl.evaluate(expr, {"value": value, "index": index, "array": input})
             ),
             None,
         )
+
+    def array_find_index(self, input, expression):
+        if not isinstance(input, list):
+            return None
+        expr = self.jexl.parse(expression)
+        for index, value in enumerate(input):
+            if self.jexl.evaluate(expr, {"value": value, "index": index, "array": input}):
+                return index
+        return -1
 
     def array_reduce(self, input, expression, initialValue=None):
         if not isinstance(input, list):
             return None
         expr = self.jexl.parse(expression)
         return functools.reduce(
-            lambda acc, value: expr.eval({"accumulator": acc, "value": value}),
+            lambda acc, value: self.jexl.evaluate(
+                expr, {"accumulator": acc, "value": value}
+            ),
             input,
             initialValue,
         )
@@ -468,12 +517,84 @@ class ExtendedGrammar:
         return datetime.datetime.now().timestamp() * 1000
 
     @staticmethod
-    def to_datetime(value):
-        return datetime.datetime.fromtimestamp(value / 1000).isoformat()
+    def to_datetime(input=None, format=None):
+        if input is None:
+            return datetime.datetime.now(pytz.UTC).isoformat()
+        if isinstance(input, (int, float)):
+            return datetime.datetime.fromtimestamp(input / 1000, tz=pytz.UTC).isoformat()
+        if isinstance(input, str):
+            if format:
+                # Basic mapping for date-fns format tokens to strftime
+                mapping = {
+                    "yyyy": "%Y",
+                    "MM": "%m",
+                    "dd": "%d",
+                    "HH": "%H",
+                    "mm": "%M",
+                    "ss": "%S",
+                    "SSS": "%f",  # Not exact but close
+                }
+                py_format = format
+                for js_token, py_token in mapping.items():
+                    py_format = py_format.replace(js_token, py_token)
+                dt = datetime.datetime.strptime(input, py_format)
+                # strptime creates naive dt, assume UTC or handle if needed
+                dt = dt.replace(tzinfo=pytz.UTC)
+                return dt.isoformat()
+            try:
+                dt = dtparser.isoparse(input)
+            except Exception:
+                try:
+                    dt = dtparser.parse(input)
+                except Exception:
+                    return None
+            if dt.tzinfo is None:
+                dt = dt.replace(tzinfo=pytz.UTC)
+            return dt.isoformat()
+        return None
 
     @staticmethod
     def to_millis(value):
-        return datetime.datetime.fromisoformat(value).timestamp() * 1000
+        if isinstance(value, (int, float)):
+            return float(value)
+        try:
+            dt = dtparser.isoparse(value)
+        except Exception:
+            try:
+                dt = dtparser.parse(value)
+            except Exception:
+                return None
+        if dt.tzinfo is None:
+            dt = dt.replace(tzinfo=pytz.UTC)
+        return dt.timestamp() * 1000
+
+    @staticmethod
+    def datetime_format(input, format_str):
+        try:
+            if isinstance(input, (int, float)):
+                dt = datetime.datetime.fromtimestamp(input / 1000, tz=pytz.UTC)
+            else:
+                dt = dtparser.parse(input)
+                if dt.tzinfo is None:
+                    dt = dt.replace(tzinfo=pytz.UTC)
+                else:
+                    dt = dt.astimezone(pytz.UTC)
+
+            # Very basic mapping for common tokens
+            mapping = {
+                "yyyy": "%Y",
+                "MM": "%m",
+                "dd": "%d",
+                "HH": "%H",
+                "mm": "%M",
+                "ss": "%S",
+            }
+            py_format = format_str
+            for js_token, py_token in mapping.items():
+                py_format = py_format.replace(js_token, py_token)
+            return dt.strftime(py_format)
+        except Exception:
+            return None
 
     @staticmethod
     def datetime_add(input, unit, value):
@@ -643,6 +764,24 @@ class ExtendedGrammar:
         if isinstance(input, dict) and isinstance(expression, str):
             return self.jexl.evaluate(expression, input)
         return None
+
+    @staticmethod
+    def get_type(input):
+        if input is None:
+            return "null"
+        if isinstance(input, bool):
+            return "boolean"
+        if isinstance(input, (int, float)):
+            return "number"
+        if isinstance(input, str):
+            return "string"
+        if isinstance(input, list):
+            return "array"
+        if isinstance(input, dict):
+            return "object"
+        if callable(input):
+            return "function"
+        return "undefined"
 
     def uuid(self):
         return str(uuid.uuid4())
