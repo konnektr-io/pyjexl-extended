@@ -163,6 +163,9 @@ class JexlExtendedTests(unittest.TestCase):
         self.assertEqual(self.jexl.evaluate("[2,3]|min([1,2,3,4,5])"), 1)
         self.assertEqual(self.jexl.evaluate("[2,3]|min(1,2,3,4,5)"), 1)
         self.assertEqual(self.jexl.evaluate("[4,5,6]|avg"), 5)
+        # avg skips None (JEXL skip-nil convention) instead of raising TypeError
+        self.assertEqual(self.jexl.evaluate("[1, None, 3]|avg"), 2)
+        self.assertEqual(self.jexl.evaluate("[None, None]|avg"), 0.0)
 
     def test_booleans(self):
         self.assertTrue(self.jexl.evaluate("1|toBoolean"))
