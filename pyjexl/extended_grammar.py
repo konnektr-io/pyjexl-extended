@@ -304,7 +304,12 @@ class ExtendedGrammar:
         rest = [v for v in rest]
         if len(rest) > 0 and isinstance(rest[0], list):
             rest = [v for va in rest for v in va]
-        values = value + rest
+        # Filter out None before summing — otherwise sum() raises TypeError
+        # when the input contains None (e.g. [1, None, 3]). Mirrors the
+        # JEXL "skip nil" convention.
+        values = [v for v in value + rest if v is not None]
+        if not values:
+            return 0.0
         return float(sum(values) / len(values))
 
     @staticmethod
