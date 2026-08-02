@@ -223,11 +223,41 @@ class JexlExtendedTests(unittest.TestCase):
             self.jexl.evaluate(
                 '[{name:"tek",age:32}, {name:"bar",age:34}, {name:"baz",age:33}, {name:"foo",age:35}]|sort("age",true)|mapField("name")'
             ),
-            ["tek", "baz", "bar", "foo"],
+            # sort(field, true) = DESCENDING, matching the C# flow engine
+            ["foo", "bar", "baz", "tek"],
         )
         self.assertEqual(
             self.jexl.evaluate('["foo"]|append(["tek","baz","bar"]|sort)'),
             ["foo", "bar", "baz", "tek"],
+        )
+        # First-match bracket property: `arr[.cond].prop` resolves `.prop`
+        # against the FIRST element of the filtered array (JS/C# parity)
+        self.assertEqual(
+            self.jexl.evaluate(
+                "arr[.age>34].name",
+                {"arr": [{"name": "bar", "age": 34}, {"name": "foo", "age": 35}]},
+            ),
+            "foo",
+        )
+        self.assertEqual(
+            self.jexl.evaluate(
+                "arr[.age<=34][0].name",
+                {"arr": [{"name": "bar", "age": 34}, {"name": "foo", "age": 35}]},
+            ),
+            "bar",
+        )
+        # Property access on a plain array resolves against its first element
+        self.assertEqual(
+            self.jexl.evaluate(
+                "arr.name",
+                {"arr": [{"name": "bar", "age": 34}, {"name": "foo", "age": 35}]},
+            ),
+            "bar",
+        )
+        # Filtering an undefined subject yields [] (JS parity), not a crash
+        self.assertEqual(
+            self.jexl.evaluate("missing[.age>34]", {}),
+            [],
         )
         self.assertEqual(
             self.jexl.evaluate(
@@ -297,7 +327,9 @@ class JexlExtendedTests(unittest.TestCase):
         self.assertFalse(self.jexl.evaluate("assoc|every('value.age>40')", context))
         self.assertTrue(self.jexl.evaluate("assoc|some('value.age>40')", context))
         self.assertTrue(
-            self.jexl.evaluate("assoc|some('value.lastName=='Figgis'')", context)
+            self.jexl.evaluate(
+                "assoc|some('value.lastName==''Figgis''')", context
+            )
         )
         self.assertTrue(
             self.jexl.evaluate("assoc|map('value.age')|some('value>30')", context)
