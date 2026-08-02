@@ -9,3 +9,5 @@
 .pytest_cache
 /venv
 **pycache**
+# uv.lock (generated, not committed)
+uv.lock
