@@ -57,6 +57,13 @@ class Evaluator(object):
         else:
             subject = context
 
+        # JS parity: property access on an array resolves against its first
+        # element (e.g. `arr[.cond].prop` after a bracket filter)
+        if isinstance(subject, list):
+            subject = subject[0] if len(subject) > 0 else None
+
+        if subject is None:
+            return None
         return subject.get(identifier.value, None)
 
     def visit_ObjectLiteral(self, object_literal, context):
@@ -93,6 +100,10 @@ class Evaluator(object):
     def visit_FilterExpression(self, filter_expression, context):
         values = self.evaluate(filter_expression.subject, context)
         if filter_expression.relative:
+            # JS parity: filtering an undefined subject yields [] and a
+            # non-array subject is wrapped as a single-element list
+            if not isinstance(values, list):
+                values = [] if values is None else [values]
             return [
                 value
                 for value in values

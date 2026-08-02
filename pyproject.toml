@@ -40,5 +40,10 @@ Playground = "https://jexl-playground.konnektr.io/"
 [tool.setuptools.packages.find]
 exclude = ["tests*", "tests"]
 
+[dependency-groups]
+dev = [
+    "pytest>=7.0.1",
+]
+
 [tool.setuptools]
 include-package-data = true

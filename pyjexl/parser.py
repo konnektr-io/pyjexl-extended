@@ -70,7 +70,7 @@ def jexl_grammar(jexl_config):
 
         boolean = "true" / "false"
         string = ~"\"[^\"\\\\\\n\\r]*(?:\\\\.[^\"\\\\\\n\\r]*)*\""is /
-                 ~"'[^'\\\\\\n\\r]*(?:\\\\.[^'\\\\\\n\\r]*)*'"is
+                                  ~"'[^'\\\n\r]*(?:(?:''|\\.)[^'\\\n\r]*)*'"is
         numeric = "-"? number ("." number)?
 
         number = ~r"[0-9]+"
@@ -261,7 +261,13 @@ class Parser(NodeVisitor):
         return Literal(number_type(node.text))
 
     def visit_string(self, node, children):
-        return Literal(ast.literal_eval(node.text))
+        text = node.text
+        if text.startswith("'"):
+            if text == "''":
+                return Literal("")
+            # Unescape doubled single quotes ('' -> ') used as the quote escape
+            text = text.replace("''", "\\'")
+        return Literal(ast.literal_eval(text))
 
     def generic_visit(self, node, visited_children):
         return visited_children or node

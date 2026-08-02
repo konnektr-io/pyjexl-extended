@@ -375,7 +375,8 @@ class ExtendedGrammar:
     def array_distinct(value):
         if not isinstance(value, list):
             value = [value]
-        return list(set(value))
+        # Order-preserving dedupe (JS/C# keep first-seen order; set() loses it)
+        return list(dict.fromkeys(value))
 
     @staticmethod
     def array_to_object(input, val=None):
@@ -466,13 +467,20 @@ class ExtendedGrammar:
         if not isinstance(input, list):
             return None
         expr = self.jexl.parse(expression)
-        return functools.reduce(
-            lambda acc, value: self.jexl.evaluate(
-                expr, {"accumulator": acc, "value": value}
-            ),
-            input,
-            initialValue,
-        )
+        # Bind value/index/array (parity with map/any/every/filter; JS & C#
+        # pass the full context to the reducer callback)
+        accumulator = initialValue
+        for index, value in enumerate(input):
+            accumulator = self.jexl.evaluate(
+                expr,
+                {
+                    "accumulator": accumulator,
+                    "value": value,
+                    "index": index,
+                    "array": input,
+                },
+            )
+        return accumulator
 
     """ Object functions """
 
@@ -669,18 +677,17 @@ class ExtendedGrammar:
                     return None
             dt_converted = dt.astimezone(tzinfo)
 
-        # Format: ISO string with 7 digits microseconds and offset
-        iso_str = dt_converted.strftime("%Y-%m-%dT%H:%M:%S.%f%z")
-        # Insert colon in offset for ISO compliance
-        if iso_str.endswith("+0000"):
-            iso_str = iso_str[:-5] + "+00:00"
-        elif iso_str[-5] in ["+", "-"]:
-            iso_str = iso_str[:-5] + iso_str[-5:-2] + ":" + iso_str[-2:]
-        # Truncate microseconds to 7 digits
-        if "." in iso_str:
-            ms = iso_str.split(".")[1][:7]
-            iso_str = iso_str.split(".")[0] + "." + ms + iso_str[-6:]
-        return iso_str
+        # Format: ISO-8601 with 7-digit fractional seconds and ±HH:MM offset
+        base = dt_converted.strftime("%Y-%m-%dT%H:%M:%S")
+        fraction = "{:06d}0".format(dt_converted.microsecond)
+        offset = dt_converted.utcoffset() or datetime.timedelta(0)
+        total_seconds = int(offset.total_seconds())
+        sign = "+" if total_seconds >= 0 else "-"
+        total_seconds = abs(total_seconds)
+        offset_str = "{}{:02d}:{:02d}".format(
+            sign, total_seconds // 3600, (total_seconds % 3600) // 60
+        )
+        return "{}.{}{}".format(base, fraction, offset_str)
 
     @staticmethod
     def local_time_to_iso_with_offset(local_time, time_zone):
@@ -743,18 +750,17 @@ class ExtendedGrammar:
         except Exception:
             return None
 
-        # Format: ISO string with 7 digits microseconds and offset
-        iso_str = dt_local.strftime("%Y-%m-%dT%H:%M:%S.%f%z")
-        # Insert colon in offset for ISO compliance
-        if iso_str.endswith("+0000"):
-            iso_str = iso_str[:-5] + "+00:00"
-        elif iso_str[-5] in ["+", "-"]:
-            iso_str = iso_str[:-5] + iso_str[-5:-2] + ":" + iso_str[-2:]
-        # Truncate microseconds to 7 digits
-        if "." in iso_str:
-            ms = iso_str.split(".")[1][:7]
-            iso_str = iso_str.split(".")[0] + "." + ms + iso_str[-6:]
-        return iso_str
+        # Format: ISO-8601 with 7-digit fractional seconds and ±HH:MM offset
+        base = dt_local.strftime("%Y-%m-%dT%H:%M:%S")
+        fraction = "{:06d}0".format(dt_local.microsecond)
+        offset = dt_local.utcoffset() or datetime.timedelta(0)
+        total_seconds = int(offset.total_seconds())
+        sign = "+" if total_seconds >= 0 else "-"
+        total_seconds = abs(total_seconds)
+        offset_str = "{}{:02d}:{:02d}".format(
+            sign, total_seconds // 3600, (total_seconds % 3600) // 60
+        )
+        return "{}.{}{}".format(base, fraction, offset_str)
 
     """ Misc """
 
