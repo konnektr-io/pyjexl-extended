@@ -30,6 +30,20 @@ class ExtendedGrammar:
 
     @staticmethod
     def to_json(value):
+        """
+        Parse a JSON string into the value it describes.
+
+        Values that are already structured (dict, list, int, float, bool, None)
+        are returned unchanged and no parse is attempted, so `value|toJson()` is
+        a no-op for an already-structured input. Only strings (and other types
+        `json.loads` accepts, such as bytes) are parsed, so a string that is not
+        valid JSON still raises `json.JSONDecodeError` instead of silently
+        becoming a plain string.
+        """
+        # bool is a subclass of int, so both are covered by the same check and
+        # both are returned unchanged - neither is parsed or coerced.
+        if value is None or isinstance(value, (bool, int, float, dict, list)):
+            return value
         return json.loads(value)
 
     @staticmethod

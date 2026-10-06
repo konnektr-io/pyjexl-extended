@@ -1,3 +1,4 @@
+import json
 import unittest
 from pyjexl import JexlExtended
 
@@ -13,6 +14,104 @@ class JexlExtendedTests(unittest.TestCase):
         self.assertEqual(
             self.jexl.evaluate("""{a:123456}|string"""), """{"a":123456}"""
         )
+
+    def test_json_parses_string(self):
+        # A string that IS valid JSON still gets parsed, unchanged from before.
+        self.assertEqual(self.jexl.evaluate("""'{"a": 1}'|toJson"""), {"a": 1})
+        self.assertEqual(self.jexl.evaluate("""json('{"a": 1}')"""), {"a": 1})
+        self.assertEqual(self.jexl.evaluate("""'[1, 2, 3]'|toJson"""), [1, 2, 3])
+        self.assertEqual(self.jexl.evaluate("""'"hello"'|toJson"""), "hello")
+
+    def test_json_passes_through_structured_values(self):
+        # Already-structured values are returned unchanged; no parse attempted.
+        self.assertEqual(self.jexl.evaluate("{a: 1}|toJson", {}), {"a": 1})
+        self.assertEqual(self.jexl.evaluate("[1, 2, 3]|toJson", {}), [1, 2, 3])
+        self.assertEqual(self.jexl.evaluate("42|toJson", {}), 42)
+        self.assertEqual(self.jexl.evaluate("3.5|toJson", {}), 3.5)
+        self.assertEqual(self.jexl.evaluate("true|toJson", {}), True)
+        self.assertEqual(self.jexl.evaluate("false|toJson", {}), False)
+        self.assertEqual(self.jexl.evaluate("null|toJson", {}), None)
+
+    def test_json_bool_is_not_treated_as_number(self):
+        # bool is a subclass of int in Python: a boolean must pass through as a
+        # bool (True/False), never be coerced to 1/0 or parsed.
+        self.assertIs(self.jexl.evaluate("true|toJson", {}), True)
+        self.assertIs(self.jexl.evaluate("false|toJson", {}), False)
+        self.assertIsInstance(self.jexl.evaluate("true|toJson", {}), bool)
+        # number() returns a float in this runtime (unchanged, verified on
+        # main); what matters is that toJson preserved the boolean as a bool
+        # instead of parsing or coercing it to something else.
+        self.assertEqual(self.jexl.evaluate("true|toJson|number", {}), 1.0)
+        self.assertEqual(self.jexl.evaluate("false|toJson|number", {}), 0.0)
+        self.assertEqual(
+            self.jexl.evaluate("type(t|toJson)", {"t": True}), "boolean"
+        )
+
+    def test_json_passes_through_context_values(self):
+        # The realistic pre-validation case: a dict/list already in the context.
+        context = {"obj": {"a": 1, "nested": {"b": 2}}, "arr": [1, 2, 3]}
+        self.assertEqual(self.jexl.evaluate("obj|toJson", context), {"a": 1, "nested": {"b": 2}})
+        self.assertEqual(self.jexl.evaluate("arr|toJson", context), [1, 2, 3])
+        # Function-call form with a context value, identical semantics.
+        self.assertEqual(self.jexl.evaluate("json(obj)", context), {"a": 1, "nested": {"b": 2}})
+        self.assertEqual(self.jexl.evaluate("$json(arr)", context), [1, 2, 3])
+
+    def test_json_non_json_string_still_raises(self):
+        # A malformed string must stay a visible error, not silently become a str.
+        for expression in ["'hello'|toJson", "json('hello')", "'{bad json}'|parseJson"]:
+            with self.assertRaises(json.JSONDecodeError):
+                self.jexl.evaluate(expression)
+
+    def test_json_numeric_string_coercion_unchanged(self):
+        # Explicitly out of scope: '2026'|toJson() still yields the integer 2026.
+        self.assertEqual(self.jexl.evaluate("'2026'|toJson"), 2026)
+        self.assertIsInstance(self.jexl.evaluate("'2026'|toJson"), int)
+
+    def test_json_all_aliases_share_the_behaviour(self):
+        # Every registered alias, in the form it is actually registered in:
+        # json/$json/$parseJson are functions, toJson/parseJson transforms, and
+        # parseJson is both. All of them must be off the old path.
+        context = {"obj": {"a": 1}}
+        for alias in ["json", "$json", "parseJson", "$parseJson"]:
+            self.assertEqual(
+                self.jexl.evaluate(f"{alias}(obj)", context), {"a": 1}, msg=alias
+            )
+        for alias in ["toJson", "parseJson"]:
+            self.assertEqual(
+                self.jexl.evaluate(f"obj|{alias}", context), {"a": 1}, msg=alias
+            )
+        # ...and each one still parses a valid JSON string.
+        for alias in ["json", "$json", "parseJson", "$parseJson"]:
+            self.assertEqual(
+                self.jexl.evaluate("""%s('{"a": 1}')""" % alias),
+                {"a": 1},
+                msg=alias,
+            )
+        for alias in ["toJson", "parseJson"]:
+            self.assertEqual(
+                self.jexl.evaluate("""'{"a": 1}'|%s""" % alias), {"a": 1}, msg=alias
+            )
+
+    def test_json_composes_with_the_grammar(self):
+        # Post-pass-through chaining: indexing, length and keys all work.
+        self.assertEqual(self.jexl.evaluate("{a: 1}|toJson['a']", {}), 1)
+        self.assertEqual(self.jexl.evaluate("obj|toJson['a']", {"obj": {"a": 42}}), 42)
+        self.assertEqual(self.jexl.evaluate("obj|parseJson['a']", {"obj": {"a": 42}}), 42)
+        self.assertEqual(self.jexl.evaluate("[1, 2, 3]|toJson|length", {}), 3)
+        self.assertEqual(
+            self.jexl.evaluate("obj|toJson|keys", {"obj": {"a": 1, "b": 2}}),
+            ["a", "b"],
+        )
+        self.assertEqual(
+            self.jexl.evaluate("obj|toJson|values", {"obj": {"a": 1}}), [1]
+        )
+        # A JSON string still parses and then composes the same way.
+        self.assertEqual(
+            self.jexl.evaluate("""'{"a": 42}'|toJson['a']"""), 42
+        )
+        # NOTE: the empty-paren form (`x|toJson()`, `x|toJson()['a']`) does not
+        # parse in this runtime for ANY transform - `'test'|length()` fails to
+        # parse on main too - so it is out of scope here and not asserted.
 
     def test_length(self):
         self.assertEqual(self.jexl.evaluate("'test123'|length"), 7)
